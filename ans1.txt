@@ -1,0 +1,78 @@
+Bradley Mont
+
+Laboratory: Linux and Emacs scavenger hunt
+
+1. The command [man -k "string"] prints all the commands that have that specific "string" in their man page. I used the command "man man" to find the documentation for the man command.
+
+2. The mv program is located in "/usr/local/cs/bin/mv". The sh program is stored in "/usr/bin/sh". I used the [which "command"] function to show the full path of the command.
+	
+3. I used [find /usr/bin/ -name "?r"] to find all executable programs that have names that are exactly two characters long and end in r. Then I used [man "executableName"] to find out what they do:
+pr - converts text files for printing
+ar - create, modify, and extract from archives
+tr - translates or deletes characters
+
+4. I used [man -k link] and searched until I found the "readlink" command that prints the executed file from a symbolic link. Then I used [readlink /usr/bin/emacs]. I found that "/etc/alternatives/emacs" is actually executed.
+
+5. The version number of the /usr/bin/gcc program is 4.8.5. The version number of the plain gcc program is 8.2.0. They're different programs because they're in different directories, so they're different files. I used [/usr/bin/gcc --version] and [gcc --version].
+
+6. The symbolic mode u+sx means that the user who owns the file is added permission to execute and set user ID upon execution. The symbolic mode o-w means that users who are not the owner of the file or members of the group lose the permission to write.
+
+7. I used [find /usr/local/cs -mtime -28 -type d] to find all directories modified in the last four weeks that are located under (or are the same as) the directory /usr/local/cs. I used [man find] to find out that -mtime [n] designates files that have been modified within a certain time. There are too many files to put in this text file, but here are the first couple:
+/usr/local/cs
+/usr/local/cs/src/bash
+/usr/local/cs/src/bash/RCS
+/usr/local/cs/src/coreutils
+/usr/local/cs/src/coreutils/RCS
+/usr/local/cs/src/gdb
+/usr/local/cs/src/gdb/RCS
+/usr/local/cs/src/jdk
+/usr/local/cs/src/jdk/RCS
+/usr/local/cs/src/ocaml
+/usr/local/cs/src/ocaml/RCS
+/usr/local/cs/share/info
+/usr/local/cs/share/man/man1
+/usr/local/cs/share/man/man5
+/usr/local/cs/share/man/man3
+/usr/local/cs/bin
+/usr/local/cs/bin/.del
+/usr/local/cs/gdb-8.2
+/usr/local/cs/gdb-8.2/share
+/usr/local/cs/gdb-8.2/share/info
+/usr/local/cs/gdb-8.2/share/gdb
+/usr/local/cs/gdb-8.2/share/gdb/python
+/usr/local/cs/gdb-8.2/share/gdb/python/gdb
+/usr/local/cs/gdb-8.2/share/gdb/python/gdb/command
+/usr/local/cs/gdb-8.2/share/gdb/python/gdb/function
+/usr/local/cs/gdb-8.2/share/gdb/python/gdb/printer
+/usr/local/cs/gdb-8.2/share/gdb/syscalls
+/usr/local/cs/gdb-8.2/share/gdb/system-gdbinit
+/usr/local/cs/gdb-8.2/share/man
+/usr/local/cs/gdb-8.2/share/man/man5
+/usr/local/cs/gdb-8.2/share/man/man1
+/usr/local/cs/gdb-8.2/include
+/usr/local/cs/gdb-8.2/include/gdb
+/usr/local/cs/gdb-8.2/lib
+/usr/local/cs/gdb-8.2/bin
+/usr/local/cs/coreutils-8.30
+
+8. First, I used [whereis find] to find the location of find, "/usr/bin/find". Then I used [man find] and found that [find -type l] limits the search to symbolic links. Then I used [man -k count] and found that the [wc -l] command can print the number of new lines of a file. So I used [find /usr/bin/ -type l | wc -l] and found out there are 252 symbolic links in that directory.
+
+9. First, I used [man ls] and found that [ls -a] does not ignore files starting with ".". Then, I found that [ls -lt] sorts the files by modification time (newest first) and uses a long listing format. Therefore, I used [ls -alt /usr/lib64] and found that "librom1394.so.0.3.0" is the oldest regular file in that directory (last modified December 28, 2013).
+
+10. The locale command gets its data from "the settings of the environment variables that control the locale." I obtained this data by description from [man locale].
+
+11. First, I entered emacs and used the command [C-h a] to show the commands matching a string. Then I typed in "downcase" as the string and found the following three commands: downcase-dwim (M-x ... RET), downcase-region (C-x C-l), downcase-word (M-l).
+
+12. First, I used [C-h k] to describe the function that a key returns. Then I entered each individual key after executing that command:
+[C-M-r]: (isearch-backward-regexp) does an incremental search backward for a regular expression
+[C-M-s]: (isearch-forward-regexp) does an incremental search forward for a regular expression
+[C-M-t]: (transpose-sexps) transposes words (applies to sexps as well)
+[C-M-u]: (backward-up-list) moves backward out of one level of parentheses
+[C-M-v]: (scroll-other-window) scrolls next window upward ARG lines; or near full screen if no ARG
+
+13. I used [C-h k] and searched [C-g] to find the following: 
+C-g: (keyboard-quit) During execution of Lisp code, this character causes a quit directly. At top-level, as an editor command, this simply beeps.
+
+14. First, I used the command [C-h f] to describe a function, and I entered "yank" as the input. The yank function reinserts ("pastes") the last stretch of killed text. You can easily invoke it using the keystrokes [C-y].
+
+15. First, in emacs, I used [C-h f] and entered "dired" to open up a description of the dired function. I found out that it is invoked by [C-x d]. Then, I used the shell command [ls -l /usr/bin] and compared that to what I saw when I entered emacs, used the command [C-x d], and entered "/usr/bin" as the directory. I noticed that [ls -l /usr/bin] displayed 294824 entries, while the the emacs dired command displayed 294900 entries. Therefore, the emacs dired command lists some hidden entries (such as . and ..) that [ls -l /usr/bin] does not display. Additionally, you can directly open and interact with the files outputted by the emacs dired command, but you cannot do that in the list displayed by [ls -l /usr/bin]. 
