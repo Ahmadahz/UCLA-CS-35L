@@ -1,0 +1,45 @@
+#!/bin/bash
+
+#1 use grep command to get all the words between html tags (I used [man grep] to find the -o flag, which only prints the lines matching the regular expression), and then pipe the output to the next command
+
+egrep -o "<td>.*</td>" | 
+
+#2 remove the HTML tags, and then pipe the output to the next command
+
+sed 's/<[^>]*>//g' |
+
+#3 delete all the empty lines, and then pipe the output to the next command
+
+sed '/^$/d' |
+
+#4 use the sed command to output only the odd numbered lines, which contain the Hawaiian characters (I used [man sed] to find the "first~step" option for the sed command, which matches every step'th line starting with line first)
+
+sed -n '0~2p' |
+
+#5 use the tr command to lowercase all letters
+
+tr '[:upper:]' '[:lower:]' |
+
+#6 use the sed command to replace all ` with '
+
+sed "s/\`/\'/g" |
+
+#7 use the sed command to replace commas with newlines
+
+sed 's/\,/\n/g' | 
+
+#8 use the sed command to replace spaces with newlines because multiple words on the same line should be separated
+
+sed 's/ /\n/g' |
+
+#9 delete empty lines again
+
+sed '/^$/d' |
+
+#10 use the sed command to remove all words that contain non-Hawaiian characters
+
+sed "/[^pk'mnwlhaeiou]/d" |
+
+#11 use the sort command to sort the words (-u deletes the duplicates)
+
+sort -u	

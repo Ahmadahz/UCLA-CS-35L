@@ -1,0 +1,72 @@
+#!/bin/bash
+
+#D = the first argument, which is a directory
+D=$1
+
+REGULAR_FILES=`ls -1 -a $D | sort`
+
+#only files that start with a dot
+DOT_FILES=`ls -1 -a $D | grep '^\.' | sort`
+
+IFS=$'\n'
+
+#array of duplicates
+declare -a DUPS
+
+#number of files in array
+N_FILES=0
+
+for DOT_FILE in $DOT_FILES
+do
+    #if the file isn't a symbolic link
+    if [ ! -L "$D/"$DOT_FILE"" ]
+    then
+	#if not readable, throw error message
+	if [ ! -r "$D/"$DOT_FILE"" ]
+	then
+	    echo "Cannot read $DOT_FILE"
+	    continue
+	fi
+	#if regular file
+       	if [ -f "$D/"$DOT_FILE"" ]
+       	then
+	    DUPS[N_FILES]="$D/"$DOT_FILE""
+	    ((N_FILES++))
+	fi
+    fi
+done
+	
+for REGULAR_FILE in $REGULAR_FILES
+do
+    #if the file isn't a symbolic link
+    if [ ! -L "$D/"$REGULAR_FILE"" ]
+    then
+	#if not readable, throw error message
+	if [ ! -r "$D/"$REGULAR_FILE"" ]
+	then
+            echo "Cannot read $REGULAR_FILE"
+	    continue
+	fi
+	#if regular file
+       	if [ -f "$D/"$REGULAR_FILE"" ]
+	then
+	    DUPS[N_FILES]="$D/"$REGULAR_FILE""
+	    ((N_FILES++))
+	fi
+    fi
+done
+
+#i = index of first file to compare
+#j = index of second file to compare
+for (( i=0; i < $N_FILES; i++ ))
+do
+    for (( j=i+1; j < $N_FILES; j++ ))
+    do
+	#compare every combo of 2 files
+	result=`cmp "${DUPS[i]}" "${DUPS[j]}"`
+	if [[ $result == "" ]]
+	then
+	    ln -fP "${DUPS[i]}" "${DUPS[j]}"
+	fi
+    done
+done
