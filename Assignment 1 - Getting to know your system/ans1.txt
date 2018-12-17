@@ -6,7 +6,7 @@ Laboratory: Linux and Emacs scavenger hunt
 
 2. The mv program is located in "/usr/local/cs/bin/mv". The sh program is stored in "/usr/bin/sh". I used the [which "command"] function to show the full path of the command.
 	
-3. I used [find /usr/bin/ -name "?r"] to find all executable programs that have names that are exactly two characters long and end in r. Then I used [man "executableName"] to find out what they do:
+3. I used [find /usr/bin/ -name "?r" -executable] to find all executable programs that have names that are exactly two characters long and end in r. Then I used [man "executableName"] to find out what they do:
 pr - converts text files for printing
 ar - create, modify, and extract from archives
 tr - translates or deletes characters
