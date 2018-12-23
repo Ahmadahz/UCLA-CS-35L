@@ -1,0 +1,47 @@
+Bradley Mont
+Lab 8, Rahul Dhavalikar
+Assignment 3. Modifying and rewriting software
+
+Homework Questions 1-4
+
+Q1. The patch improves the performance of ls because now the command's 
+performance is more consistent with the order of the flags given, so 
+its outcome is more predictable. In terms of the time efficiency for 
+the ls -aA command in this lab, the time performance is technically 
+worse because an extra check needs to be made to not display the "." 
+and ".." directories.
+
+Q2. If my company adopts this patched version of Coreutils instead 
+of the default one, I would watch out for anything that may have been 
+overriden when I introduced my patch.
+
+Q3. When the script is invoked on an empty file like /dev/null, it 
+throws the following error:
+Traceback (most recent call last):
+  File "randline.py", line 70, in <module>
+    main()
+  File "randline.py", line 64, in main
+    sys.stdout.write(generator.chooseline())
+  File "randline.py", line 34, in chooseline
+    return random.choice(self.lines)
+  File "/usr/local/cs/Python-2.7.14/lib/python2.7/random.py", line 277, in 
+  choice
+    return seq[int(self.random() * len(seq))]  # raises IndexError if seq is 
+    empty
+IndexError: list index out of range
+
+It throws this error because the chooseline() function has nothing inputted to 
+it since the file is empty. Then, the chooseline() function calls 
+random.choice() with an empty sequence as input, but random.choice() raises an
+IndexError when an empty sequence is inputted.
+
+Q4. When the script is invoked with python3 instead of python2, it throws the 
+following error:
+  File "randline.py", line 65
+    except IOError as (errno, strerror):
+                      ^
+SyntaxError: invalid syntax
+
+It throws this error because the line "except IOError as (errno, strerror):" 
+is not valid python3 code. In python3, it should be written as 
+"except IOError as err:".

@@ -1,0 +1,336 @@
+Bradley Mont
+CS 35L Lab 8, Rahul Dhavalikar
+Assignment 5. System call programming and debugging
+Homework: Encrypted sort revisited
+
+First, here is a copy of lab.txt:
+Laboratory: Buffered versus unbuffered I/O
+
+1. Write the tr2b.c and tr2u.c programs and compile them using gcc.
+
+Then, we use the strace command to compare the system calls issued by the tr2b and tr2u commands 
+(a) when copying one file to another, and (b) when copying a file to my terminal. 
+We use a file that contains at least 5,000,000 bytes.
+
+2. Command: [dd if=/dev/urandom of=bigfile.txt bs=1M count=5]
+First, we use the dd command and urandom to create a large file to use for testing. Specifically, this file contains 5,000,000 bytes.
+
+3. Command: [strace -cf ./tr2b 'a\n-' 'z@m+' < bigfile.txt > tr2boutputfile.txt]
+This command measures the system calls made by my tr2b program when (a) copying one file to another.
+We get the following output:
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+ 63.25    0.000222           0       640           write
+ 36.75    0.000129           0       642           read
+  0.00    0.000000           0         2           open
+  0.00    0.000000           0         2           close
+  0.00    0.000000           0         4           fstat
+  0.00    0.000000           0         9           mmap
+  0.00    0.000000           0         4           mprotect
+  0.00    0.000000           0         1           munmap
+  0.00    0.000000           0         1           brk
+  0.00    0.000000           0         1         1 access
+  0.00    0.000000           0         1           execve
+  0.00    0.000000           0         1           arch_prctl
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.000351                  1308         1 total
+We see that there is a total of 1308 system calls.
+
+4. Command: [strace -cf ./tr2u 'a\n-' 'z@m+' < bigfile.txt > tr2uoutputfile.txt]
+This command measures the system calls made by my tr2u program when (a) copying one file to another.
+We get the following output:
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+ 55.07   24.175334           5   5242880           write
+ 44.91   19.716549           4   5242882           read
+  0.02    0.010521           4      2486           brk
+  0.00    0.000000           0         2           open
+  0.00    0.000000           0         2           close
+  0.00    0.000000           0         2           fstat
+  0.00    0.000000           0         7           mmap
+  0.00    0.000000           0         4           mprotect
+  0.00    0.000000           0         1           munmap
+  0.00    0.000000           0         1         1 access
+  0.00    0.000000           0         1           execve
+  0.00    0.000000           0         1           arch_prctl
+------ ----------- ----------- --------- --------- ----------------
+100.00   43.902404              10488269         1 total
+We see that there is a total of 10488269 system calls.
+
+
+5. Command: [strace -cf ./tr2b 'a\n-' 'z@m+' < bigfile.txt]
+This command measures the system calls made by my tr2b program when (b) when copying a file to my terminal.
+We get the following output:
+time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+ 97.31    0.068981           3     20800           write
+  2.46    0.001745           3       642           read
+  0.08    0.000056           6         9           mmap
+  0.05    0.000033           8         4           mprotect
+  0.03    0.000018           5         4           fstat
+  0.02    0.000015           8         2           open
+  0.02    0.000011          11         1           munmap
+  0.01    0.000008           8         1           execve
+  0.01    0.000007           4         2           close
+  0.01    0.000007           7         1         1 access
+  0.01    0.000004           4         1           brk
+  0.00    0.000003           3         1           arch_prctl
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.070888                 21468         1 total
+We see that there is a total of 21468 system calls.
+
+
+6. Command: [strace -cf ./tr2u 'a\n-' 'z@m+' < bigfile.txt]
+This command measures the system calls made by my tr2u program when (b) when copying a file to my terminal.
+We get the following output:
+time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+ 55.57   25.749880           5   5242880           write
+ 44.41   20.576756           4   5242882           read
+  0.02    0.010908           4      2486           brk
+  0.00    0.000000           0         2           open
+  0.00    0.000000           0         2           close
+  0.00    0.000000           0         2           fstat
+  0.00    0.000000           0         7           mmap
+  0.00    0.000000           0         4           mprotect
+  0.00    0.000000           0         1           munmap
+  0.00    0.000000           0         1         1 access
+  0.00    0.000000           0         1           execve
+  0.00    0.000000           0         1           arch_prctl
+------ ----------- ----------- --------- --------- ----------------
+100.00   46.337544              10488269         1 total
+We see that there is a total of 10488269 system calls.
+
+Overall, we see that tr2u has many more system calls than tr2b for (a) copying one file to another
+and for (b) when copying a file to my terminal.
+
+Then, we use the time command to measure how much faster one program is, 
+compared to the other, when copying the same amount of data.
+
+7. Command: [time ./tr2b 'a\n-' 'z@m+' < bigfile.txt > tr2boutputfile2.txt]
+This command measures the speed of my tr2b program when (a) copying one file to another.
+We get the following output:
+real	0m0.328s
+user	0m0.273s
+sys	0m0.008s
+
+
+8. Command: [time ./tr2u 'a\n-' 'z@m+' < bigfile.txt > tr2uoutputfile2.txt]
+This command measures the speed of my tr2u program when (a) copying one file to another.
+We get the following output:
+real	0m10.303s
+user	0m1.529s
+sys	0m8.728s
+
+
+9. Command: [time ./tr2b 'a\n-' 'z@m+' < bigfile.txt]
+This command measures the speed of my tr2b program when (b) when copying a file to my terminal.
+We get the following output: 
+real	0m1.204s
+user	0m0.341s
+sys	0m0.094s
+
+
+10. Command: [time ./tr2u 'a\n-' 'z@m+' < bigfile.txt]
+This command measures the speed of my tr2u program when (b) when copying a file to my terminal.
+We get the following output:
+real	0m9.629s
+user	0m1.613s
+sys	0m8.002s
+
+
+Overall, we see that tr2u is much slower because it has so many more system calls. Therefore,
+unbuffered I/O is much slower than buffered I/O. The many more system calls slow it down.
+
+//END OF LAB.TXT
+
+Instructions: Measure any differences in performance between sfrob and sfrobu using the time command. 
+Run your program on inputs of varying numbers of input lines, and estimate the number of comparisons 
+as a function of the number of input lines.
+
+We will test sfrob and sfrobu on files with 100, 1000, 10000, 100000, and 1000000 lines. We will use the time command
+to compare their speeds.
+
+1. Command: [yes 'yes outputs a string until killed' | head -n 100 > test1.txt]
+			[yes 'yes outputs a string until killed' | head -n 1000 > test2.txt]
+			[yes 'yes outputs a string until killed' | head -n 10000 > test3.txt]
+			[yes 'yes outputs a string until killed' | head -n 100000 > test4.txt]
+			[yes 'yes outputs a string until killed' | head -n 1000000 > test5.txt]
+This command creates a file with head -n "numLines" lines.
+
+2. Command: [time ./sfrob < test1.txt]
+We get the following output:
+real	0m0.010s
+user	0m0.001s
+sys	0m0.001s
+
+3. Command: [time ./sfrobu < test1.txt]
+We get the following output:
+real	0m0.003s
+user	0m0.002s
+sys	0m0.000s
+
+4. Command: [time ./sfrob < test2.txt]
+We get the following output:
+real	0m0.010s
+user	0m0.006s
+sys	0m0.003s
+
+5. Command: [time ./sfrobu < test2.txt]
+We get the following output:
+real	0m0.011s
+user	0m0.002s
+sys	0m0.007s
+
+6. Command: [time ./sfrob < test3.txt]
+We get the following output:
+real	0m0.080s
+user	0m0.062s
+sys	0m0.014s
+
+7. Command: [time ./sfrobu < test3.txt]
+We get the following output:
+real	0m0.094s
+user	0m0.036s
+sys	0m0.052s
+
+8. Command: [time ./sfrob < test4.txt]
+We get the following output:
+real	0m0.853s
+user	0m0.623s
+sys	0m0.158s
+
+9. Command: [time ./sfrobu < test4.txt]
+We get the following output:
+real	0m0.952s
+user	0m0.391s
+sys	0m0.501s
+
+10. Command: [time ./sfrob < test5.txt]
+We get the following output:
+real	0m9.091s
+user	0m6.600s
+sys	0m1.587s
+
+11. Command: [time ./sfrobu < test5.txt]
+We get the following output:
+real	0m10.092s
+user	0m4.366s
+sys	0m5.159s
+
+Observations: We see that in general, sfrobu takes longer to run compared to sfrob. 
+This supports our claim that unbuffered I/O is slower than buffered I/O.
+
+Now, we make sfrobcopy and sfrobucopy programs that are exactly the same as before, but
+now they output the number of comparisons made. We have a global numComparisons variable,
+and we increment it every time we run the generalCmp function.
+
+12. Command: [./sfrobcopy < test1.txt]
+Number of Comparisons: 3669
+
+13. Command: [./sfrobucopy < test1.txt]
+Number of Comparisons: 3669
+
+12. Command: [./sfrobcopy < test2.txt]
+Number of Comparisons: 51353
+
+12. Command: [./sfrobucopy < test2.txt]
+Number of Comparisons: 51353
+
+12. Command: [./sfrobcopy < test3.txt]
+Number of Comparisons: 664335
+
+12. Command: [./sfrobucopy < test3.txt]
+Number of Comparisons: 664335
+
+12. Command: [./sfrobcopy < test4.txt]
+Number of Comparisons: 8153455
+
+12. Command: [./sfrobucopy < test4.txt]
+Number of Comparisons: 8153455
+
+12. Command: [./sfrobcopy < test5.txt]
+Number of Comparisons: 96283980
+
+12. Command: [./sfrobucopy < test5.txt]
+Number of Comparisons: 96283980
+
+Now, we want to estimate the number of comparisons as a function of the number of input lines.
+We have the following data:
+# input lines -> # comparisons
+100				 3669
+1000			 51353
+10000			 664335
+100000			 8153455
+1000000			 96283980
+I plugged the data points into my graphing calculator and tried out several different regression types.
+With an r value of 0.99989 and r^2 of .999787, the following linear regression is the best estimate of
+the number of comparisons as a function of the number of input lines:
+(# of comparisons) = 96.6179 * (# of input lines) - 439081
+Keep in mind that each line had the same text: 'yes outputs a string until killed'.
+
+Instructions: Use the time command to compare the overall performance of sfrob, sfrobu, sfrobs, sfrobu -f, and sfrobs -f.
+We will run these programs with the files, test3.txt and test4.txt, and we will use the time command to compare their speed.
+
+1. Command: [time ./sfrob < test3.txt]
+real	0m0.081s
+user	0m0.053s
+sys	0m0.023s
+
+2. Command: [time ./sfrobu < test3.txt]
+real	0m2.110s
+user	0m2.051s
+sys	0m0.056s
+
+3. Command: [time ./sfrobs < test3.txt]
+real	0m0.032s
+user	0m0.014s
+sys	0m0.018s
+
+4. Command: [time ./sfrobu -f < test3.txt]
+real	0m2.190s
+user	0m2.123s
+sys	0m0.063s
+
+5. Command: [time ./sfrobs -f < test3.txt]
+real	0m0.038s
+user	0m0.022s
+sys	0m0.017s
+
+6. Command: [time ./sfrob <  test4.txt]
+real	0m0.897s
+user	0m0.638s
+sys	0m0.147s
+
+7. Command: [time ./sfrobu < test4.txt]
+real	4m23.722s
+user	4m22.437s
+sys	0m0.978s
+
+8. Command: [time ./sfrobs < test4.txt]
+real	0m0.356s
+user	0m0.160s
+sys	0m0.099s
+
+9. Command: [time ./sfrobu -f < test4.txt]
+real	4m25.069s
+user	4m23.720s
+sys	0m1.055s
+
+10. Command: [time ./sfrobs -f < test4.txt]
+real	0m0.438s
+user	0m0.237s
+sys	0m0.105s
+
+Observations: We see that from slowest to fastest, we have 
+1. sfrobu -f
+2. sfrobu
+3. sfrob
+4. sfrobs -f
+5. sfrobs
+We see that sfrobu is slower than sfrob, most likely because sfrobu relies
+on unbuffered I/O, so it has to make a lot more system calls than sfrob, which
+uses buffered I/O. Therefore, the more system calls made slows down the
+program. Also, we see that sfrobu -f is slower than sfrobu, and sfrobs -f is
+slower than sfrobs. This could be because the -f flag adds a small computation
+to convert each frobnicated char to its uppercase version when comparing.

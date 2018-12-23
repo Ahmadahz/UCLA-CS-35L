@@ -1,0 +1,234 @@
+Bradley Mont
+CS 35L Lab 8, Rahul Dhavalikar
+Assignment 4. C programming and debugging
+Laboratory: Debugging a C program
+
+1. Command: [wget https://web.cs.ucla.edu/classes/fall18/cs35L/assign/coreutils-with-bug.tar.gz]
+We use the wget command to download the coreutils-with-bug source code compressed tarball.
+
+2. Command: [tar -xf coreutils-with-bug.tar.gz]
+We use the tar command to "unzip" the file. The -x means to extract the files from an archive, 
+and the -f means to use archive file or device ARCHIVE. This creates a directory named "coreutils-8.29".
+
+3. Command: [cd coreutils-with-bug]
+We use the cd command to go into our coreutils-with-bug directory.
+
+4. Command: [./configure --prefix=/u/ch/ugrad/bradley/coreutils]
+We then execute the configure script in the coreutils-with-bug directory to 
+first configure the package. The configure script creates a Makefile in 
+each directory of the package. We use --prefix to specify an absolute path 
+for the installation location, instead of /usr/local/bin by default.
+
+5. Command: [make]
+The make command compiles the package.
+However, we get the following error:
+utimens.h:2:5: error: conflicting types for 'futimens'
+ int futimens (int, char const *, struct timespec const [2]);
+     ^~~~~~~~
+In file included from utimecmp.h:25,
+                 from utimecmp.c:25:
+/usr/include/sys/stat.h:373:12: note: previous declaration of 'futimens' was here
+ extern int futimens (int __fd, const struct timespec __times[2]) __THROW;
+            ^~~~~~~~
+This error is thrown because the code tries to redefine the futimens function. 
+When we try to redefine the same function but with different parameters, it will throw an error.
+
+6. Command: [wget https://web.cs.ucla.edu/classes/fall18/cs35L/assign/coreutils.diff]
+We use wget to download the coreutils.diff (patch) file.
+
+7. Command: [patch -p0 < coreutils.diff]
+This command applies the patch. The -p0 strips the smallest prefix containing 
+0 leading slashes from each file name found in the patch file.
+
+8. Command: [make]
+The make command compiles the package.
+
+9. Command: [make install]
+The make install command installs the programs and any data files and 
+documentation (it installs the package).
+
+We notice that we had no problems running make and make install after the renaming patch.
+This patch solved the problem by changing 
+futimens (int fd ATTRIBUTE_UNUSED, char const *file, struct timespec const timespec[2]) to
+coreutils_futimens (int fd ATTRIBUTE_UNUSED, char const *file, struct timespec const timespec[2]).
+It also changed 
+static bool tee (int nfiles, const char **files); to
+static bool coreutils_tee (int nfiles, const char **files);
+These changes fixed the error because now we no longer are trying to redefine the same function
+since we gave one of them a different name. I figured this out by using the 
+command [emacs coreutils.diff].
+
+10. Command: [tmp=$(mktemp -d)]
+			 [cd $tmp]
+			 [touch -d '1918-11-11 11:00 GMT' wwi-armistice]
+			 [touch now]
+			 [sleep 1]
+			 [touch now1]
+			 [TZ=UTC0 ~/coreutils/bin/ls -lt --full-time wwi-armistice now now1]
+We run the commands above to reproduce the bug by creating a temporary directory with 3 files.
+We get the following output:
+-rw-r--r-- 1 bradley chugrad 0 1918-11-11 11:00:00.000000000 +0000 wwi-armistice
+-rw-r--r-- 1 bradley chugrad 0 2018-11-02 05:41:53.634318239 +0000 now1
+-rw-r--r-- 1 bradley chugrad 0 2018-11-02 05:41:36.728852846 +0000 now
+We see that the bug has been reproduced because it acts as if the file with a time 
+stamp very far in the past is supposedly from the future. Specifically, it listed 
+the "wwi-armistice" as most recent, when it is obviously the oldest file of the three.
+
+11. Command: [gdb ~/coreutils/bin/ls]
+We use the gdb debugger to try to find the exact source of the bug.
+
+12. Command: [break main]
+We set a breakpoint at the main method so we can step through the program.
+
+13. Command: [run -lt --full-time /tmp/tmp.HtCcE8DEn5]
+Now we run the ls command within gdb. It stops at the first breakpoint, the main method.
+
+14. Command: [next] (multiple times)
+We repeatedly step through the code of the program until we see the sort_files() function,
+which sounds like it could be responsible for the bug. 
+
+15. Command: [break sort_files]
+Now, we set a breakpoint at the sort_files() function so we can examine it further.
+
+16. Command: [continue]
+Keep running until we reach the sort_files() function.
+
+17. Command: [step] (multiple times)
+We step through the function to find the following two lines:
+func = sort_reverse ? rev_cmp_mtime : compare_mtime;
+qsort (files, files_index, sizeof *files, func);
+We know that qsort is provided by the C standard library, so the implementation should be correct.
+However, we cannot guarantee that the parameters passed to the function are correct. We see that 
+"func" is passed to the qsort function, so the error could lie within the compare_mtime function.
+
+18. Command: [break compare_mtime]
+Set a breakpoint at compare_mtime to examine it further.
+
+19. Command: [continue] (twice)
+Continue executing the program until we reach the compare_mtime function.
+Once we reach the breakpoint, we see that the compare_mtime function has the following contents:
+static int compare_mtime (V a, V b) { return cmp_mtime (a, b, xstrcoll); }
+Now, we see that compare_mtime calls cmp_mtime, so we should examine the cmp_mtime function.
+
+20. Command: [break cmp_mtime]
+Set a breakpoint at cmp_mtime to examine it further.
+
+21. Command: [continue]
+We continue until we reach the breakpoint at the cmp_mtime function.
+
+22. Command: [list]
+We run this command to see the full contents of the cmp_mtime function. We see the following:
+2877	cmp_mtime (struct fileinfo const *a, struct fileinfo const *b,
+2878		   int (*cmp) (char const *, char const *))
+2879	{
+2880	  int diff = timespec_cmp (get_stat_mtime (&b->stat),
+2881				   get_stat_mtime (&a->stat));
+2882	  return diff ? diff : cmp (a->name, b->name);
+2883	}
+We see that cmp_mtime ultimately calls timespec_cmp to return its diff result, so we should
+examine timespec_cmp further.
+
+23. Command: [break timespec_cmp]
+Set a breakpoint at timespec_cmp to examine it further.
+
+24. Command: [continue]
+We continue until we reach the breakpoint at the timespec_cmp function.
+
+25. Command: [list]
+We run this command to see the full contents of the timespec_cmp function. We see the following:
+Breakpoint 3, timespec_cmp (b=..., a=...) at ../lib/timespec.h:48
+48	  int diff = a.tv_sec - b.tv_sec;
+(gdb) list
+43	/* Return negative, zero, positive if A < B, A == B, A > B, respectively.
+44	   Assume the nanosecond components are in range, or close to it.  */
+45	static inline int
+46	timespec_cmp (struct timespec a, struct timespec b)
+47	{
+48	  int diff = a.tv_sec - b.tv_sec;
+49	  return diff ? diff : a.tv_nsec - b.tv_nsec;
+50	}
+From here, we can see the source of the error: "int diff = a.tv_sec - b.tv_sec".
+Let's think of the diff for our now file and our wwi-armistice file. The wwi-armistice file is so 
+far in the past compared to our now file that our int diff is such a large negative integer. This leads
+to integer overflow to a positive integer, which makes the wwi-armistice file incorrectly seem in
+the future.
+
+26. Command: [quit]
+			 [cd ~]
+			 [cp coreutils-with-bug/lib/timespec.h timespec.h]
+			 [emacs timespec.h]
+Now that we know the source of the bug, we want to fix it. First, quit gdb, go back to the home
+directory, and make a copy of the timespec.h file (we know the timespec_cmp function is 
+in this file because it says in the gdb list output). Then, open the file in emacs.
+
+27. Within emacs, we change timespec_cmp to the following to prevent overflow:
+static inline int
+timespec_cmp (struct timespec a, struct timespec b)
+{
+  if (a.tv_sec > b.tv_sec)
+  {
+    return 1;
+  }
+  else if (a.tv_sec < b.tv_sec)
+  {
+    return -1;
+  }
+  else
+  {
+    return 0;
+  }
+}
+
+28. Command: [diff -u coreutils-with-bug/lib/timespec.h timespec.h > coreutils-with-bug/lab4.diff]
+Now, we create the patch file using the diff -u command. 
+
+29. Command: [cd coreutils-with-bug]
+			 [emacs lab4.diff]
+			 [C-x 4-a]
+Now, we edit the file so it is in the form of a ChangeLog entry. We use [C-x 4-a] to add a ChangeLog entry. 
+We also paste our entry into the diff file itself. We also have to ensure that we have the correct paths
+by using lib/timespec.h.  
+
+30. Command: [patch -p0 < lab4.diff]
+This command applies the patch. the -p0 strips the smallest prefix containing 
+0 leading slashes from each file name found in the patch file.
+
+31. Command: [make]
+The make command compiles the package.
+
+32. Command: [make install]
+The make install command installs the programs and any data files and 
+documentation (it installs the package).
+
+33. Command: [tmp=$(mktemp -d)]
+			 [cd $tmp]
+			 [touch -d '1918-11-11 11:00 GMT' wwi-armistice]
+			 [touch now]
+			 [sleep 1]
+			 [touch now1]
+			 [TZ=UTC0 ~/coreutils/bin/ls -lt --full-time wwi-armistice now now1]
+Now, we try again to see if the patch fixed the bug, and we see the following output:
+-rw-r--r-- 1 bradley chugrad 0 2018-11-03 09:29:00.112833758 +0000 now1
+-rw-r--r-- 1 bradley chugrad 0 2018-11-03 09:28:51.175587443 +0000 now
+-rw-r--r-- 1 bradley chugrad 0 1918-11-11 11:00:00.000000000 +0000 wwi-armistice
+We see that the bug has been fixed because the wwi-armistice is rightfully in its
+place as the oldest file, and it is not being treated as if it is from the future.
+
+34. Command: [cd ~]
+			 [touch -d '1918-11-11 11:00 GMT' wwi-armistice]
+			 [touch now]
+			 [sleep 1]
+			 [touch now1]
+			 [TZ=UTC0 ~/coreutils/bin/ls -lt --full-time wwi-armistice now now1]
+Now, we try to reproduce the problem in our home directory on the SEASnet Linux servers, 
+instead of using the $tmp directory. We see the following output:
+-rw-r--r-- 1 bradley chugrad 0 2054-12-17 17:28:16.000000000 +0000 wwi-armistice
+-rw-r--r-- 1 bradley chugrad 0 2018-11-03 09:34:29.947447000 +0000 now1
+-rw-r--r-- 1 bradley chugrad 0 2018-11-03 09:34:20.975614000 +0000 now
+We see an interesting error. It outputs that the timestamp for the wwi-armistice file
+is 2054-12-17, well into the future. This occurs because the Unix time format stores 
+each time as a 32-bit integer that is also the amount of time passed since January 1st,
+1970. Since 1918 is before 1970, it considers this as a "negative" time. The SEASnet
+filesystem uses unsigned 32-bit timestamps, so instead of considering the time as
+negative (interpreting it as signed), it interprets the time as positive and outputs 
+a date very far into the future.

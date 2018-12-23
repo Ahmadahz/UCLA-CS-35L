@@ -1,0 +1,23 @@
+Bradley Mont
+CS 35L Lab 8, Rahul Dhavalikar
+Assignment 9. Change management
+
+In this file, we briefly describe the roles of subwindows that we see in the screenshot.
+
+First off, we see the screen divided up into windows.
+
+In the top left window, we see a record of all of the commits in a list view, as well as a branch view that displays
+merging, branching, etc.
+
+In the top middle window, we see the author for each commit, and their email address as well. 
+
+In the top right window, we see the date of each commit.
+Note: times are formatted YYYY-MM-DD.
+
+In the middle window (across the whole screen), we see the SHA1 ID for each commit and the current row.
+Additionally, we see a search bar to find commits containing certain text below the SHA1 ID and row number.
+
+In the bottom left window, we see the details about the commit that we currently have selected in the top windows.
+We see the author, committer, parent, child, branches, follows, precedes, etc.
+
+In the bottom right window, we see the files modified by the commit.

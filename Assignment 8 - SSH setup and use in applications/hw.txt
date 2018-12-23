@@ -1,0 +1,41 @@
+Bradley Mont
+CS 35L Lab 8, Rahul Dhavalikar
+Assignment 8. SSH setup and use in applications
+Homework
+
+1. Suppose the other teams really had been observing all the bytes going across the network. 
+Is your resulting network still secure? If so, explain why, and explain whether your answer 
+would change if (1) you assumed the other teams had also tapped your keyboards after you completed 
+all client-server setup and had thereby obtained your team's keystrokes during later operation, or 
+(2) you are booting off USB and you assume the other teams temporarily had physical control of the USB. 
+If not, explain any weaknesses of your team's setups, focusing on possible attacks by such outside observers.
+
+Answer:
+
+Our resulting network would still be secure. Even if the other teams were observing all the bytes going
+across the network, our messages are encrypted with the public keys. Our computers have the private keys
+to decrypt the messages, so they cannot decrypt our messages. 
+
+(1) If the other teams had tapped our keyboards and obtained our team's keystrokes, my answer would change.
+As before, they would still not be able to access our private key. Recording keystrokes wouldn't give them
+our private key info. However, they could potentially see the keystrokes of us inputting our passphrase.
+Then, they would have our passphrase and be able to log in and access our programs and files.
+
+(2) If we are booting off USB and assume the other teams temporarily had physical control of the USB, my answer
+would change. Since they have physical control of the USB, the other teams could go into the .ssh folder and 
+access the private key. Now that they have access to the private key, they can decrypt our messages (all the
+bytes going across the network).
+
+
+2. Explain why the gpg2 --verify command in the following instructions doesn't really verify that you personally 
+created the file in question. How would you go about fixing this problem?
+
+Answer:
+The gpg2 --verify command in the following instructions doesn't really verify that I personally created 
+the file in question. Instead, it checks the detached signatures. More specifically, it checks if the file
+and the detached signature match. Therefore, an attacker could potentially change the information for the
+message and make a new detached signature that could possibly match another file.
+
+I would go about fixing this problem by using a third party to keep track of my public key. This third party
+could use a certificate to keep a record of the origin of the key, so we can always track who the rightful owner of the key is. 
+It will be obvious if an attacker has tampered with the key this way.

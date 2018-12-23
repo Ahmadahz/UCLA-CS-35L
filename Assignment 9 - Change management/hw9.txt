@@ -1,0 +1,94 @@
+Bradley Mont
+CS 35L Lab 8, Rahul Dhavalikar
+Assignment 9. Change management
+Homework: Verifying and publishing a backported change
+
+1. Maintain this text file.
+
+2. Command: [git clone https://git.savannah.gnu.org/git/diffutils.git diffutilshw9]
+			[cd diffutilshw9]
+			[git checkout v3.0 -b quote]
+We check out version 3.0 of Diffutils from our repository, into a new branch named “quote”.
+We choose to clone diffutils again in a new folder to make sure everything is clean.
+We get the following output: Switched to a new branch 'quote'
+
+3. Command: [patch -p1 < ../quote-3.0-patch.txt]
+We then install our change into this new branch, by running the patch command with our patch quote-3.0-patch.txt as input.
+We get the following output:
+[bradley@lnxsrv05 ~/diffutilshw9]$ patch -p1 < ../quote-3.0-patch.txt
+patching file src/cmp.c
+patching file src/diff.c
+patching file src/diff3.c
+patching file src/dir.c
+patching file src/sdiff.c
+patching file src/util.c
+
+4. We then learn how to use the emacs function add-change-log-entry-other-window (C-x 4 a).
+
+5. Command: [emacs fileName] (for each of the files from the previous output)
+			[C-x 4 a]
+			(paste from git-log.txt)
+			[C-x C-s]
+			[C-x C-c]
+We use add-change-log-entry-other-window to compose an appropriate ChangeLog entry for our patch, by adapting the change log from the original patch.
+We open each of the 6 files in emacs, type the add-change-log-entry-other-window
+command, and then we paste the content from the original entry in git-log.txt.
+
+6. Command: [git add .]
+			[git commit -F ChangeLog]
+We then commit our changes to the new branch, using the ChangeLog entry as the commit message.
+We get the following output:
+[bradley@lnxsrv05 ~/diffutilshw9]$ git commit -F ChangeLog
+[quote 7f0ae77] 2018-12-07  Bradley Harrison Mont  <bradley@lnxsrv05.seas.ucla.edu>
+ Committer: Bradley Harrison Mont <bradley@lnxsrv05.seas.ucla.edu>
+Your name and email address were configured automatically based
+on your username and hostname. Please check that they are accurate.
+You can suppress this message by setting them explicitly:
+
+    git config --global user.name "Your Name"
+    git config --global user.email you@example.com
+
+After doing this, you may fix the identity used for this commit with:
+
+    git commit --amend --reset-author
+
+ 7 files changed, 43 insertions(+), 43 deletions(-)
+ create mode 100644 .ChangeLog.swp
+
+7. Command: [git format-patch -1 --stdout > formatted-patch.txt]
+We then use the command “git format-patch” to generate a file formatted-patch.txt.
+This patch should work without having to fix things by hand afterwards.
+
+8. Command: [git checkout v3.0 -b partner]
+			(get partner's patch and upload to lnxsrv - save as partner-patch.txt)
+			[git am < ../partner-patch.txt]
+			[./bootstrap]
+			[./configure]
+			[make]
+			[make check]
+
+Now I am working with Boneui Koo, who also generated a patch. I verify that my partner's patch works, by checking out version 3.0 again into a new temporary branch partner, applying the patch with the command “git am”, and building the resulting system, checking that it works with “make check”.
+
+9. Command: [make distdir]
+			[cd diffutils-3.0.1-362d]
+			[emacs ChangeLog]
+We then verify that our ChangeLog entry works, by running the command “make 
+distdir” and inspecting the resulting diffutils*/ChangeLog file.
+When we open the ChangeLog in emacs, we see Boneui's log.
+
+10. Command: [ssh -x bradley@lnxsrv05.seas.ucla.edu]
+			 [export PATH=/usr/local/cs/bin:$PATH]
+			 [cd ~eggert/src/gnu/emacs]
+			 [gitk]
+			 (find the newest maerge no newer than 2015-01-25)
+			 (take a screenshot)
+			 (upload screenshot to lnxsrv)
+			 [emacs gitk-description.txt]
+
+There is a copy of the GNU Emacs git repository's master branch on SEASnet in the
+directory ~eggert/src/gnu/emacs. We run the command gitk on it, and find the newest 
+merge that is not newer than 2015-01-25. We then take a screenshot gitk-screenshot.png of 
+our view of the mergepoint, and in an ASCII text file gitk-description.txt 
+briefly describe the roles of subwindows that we see in the screenshot.
+To do this, we download XQuartz on our Mac, use "shh -X" to allow X11 forwarding, and
+then XQuartz will be used to open the GNU Emacs git repository.

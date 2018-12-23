@@ -1,0 +1,175 @@
+Bradley Mont
+Lab 8, Rahul Dhavalikar
+Assignment 3. Modifying and rewriting software
+
+Laboratory: Installing a small change to a big package
+
+1. Command: [wget ftp://ftp.gnu.org/gnu/coreutils/coreutils-8.29.tar.xz]
+		[wget ftp://ftp.gnu.org/gnu/coreutils/coreutils-8.29.tar.xz.sig]
+			[wget https://ftp.gnu.org/gnu/gnu-keyring.gpg]
+	[gpg --verify --keyring ./gnu-keyring.gpg coreutils-8.29.tar.xz.sig]
+First, we use the wget command to download the Coreutils 8.29 source code 
+compressed tarball, the signature file, and the GNU keyring as well. Then 
+we run the gpg command to verify its signature. After running all the 
+previous commands, we receive the following error message: "WARNING: This 
+key is not certified with a trusted signature! There is no indication that 
+the signature belongs to the owner." This error occurs because it is a public 
+key and has not been specifically validated by me. 
+
+2. Command: [tar -xf coreutils-8.29.tar.xz]
+We use the tar command to "unzip" the file. The -x means to extract the files 
+from an archive, and the -f means to use archive file or device ARCHIVE. This 
+creates a directory named "coreutils-8.29".
+Command: [cd coreutils-8.29]
+We use the cd command to go into our coreutils-8.29 directory.
+Command: [emacs INSTALL]
+We use emacs to view the INSTALL file to view installation instructions. We 
+find that we can specify an installation prefix, where the prefix is an 
+absolute file name, so we use that command next.
+Command: [./configure --prefix=/u/ch/ugrad/bradley/coreutilsCopy]
+We then execute the configure script in the coreutils-8.29 directory to 
+first configure the package. The configure script creates a Makefile in 
+each directory of the package. We use --prefix to specify an absolute path 
+for the installation location, instead of /usr/local/bin by default.
+Command: [make]
+The make command compiles the package.
+Command: [make install]
+The make install command installs the programs and any data files and 
+documentation (it installs the package).
+I did not run into any problems.
+
+3. (First cd into the home directory with [cd ~/])
+Command: [coreutilsCopy/bin/ls -aA]
+Here is the output:
+'#exer1.html#'	 
+.gnupg         
+buildwords		    
+exer3.html~       
+perl5
+'#exer4.diff#'	 
+.local         
+coreutils-8.29		    
+exer4.diff	    
+sameln
+ .		 
+ .login         
+ coreutils-8.29.tar.xz	    
+ exer4.html	      
+ sameln~
+ ..		 
+ .logout        
+ coreutils-8.29.tar.xz.sig   
+ exer4.html~       
+ test
+ .bash_history	 
+ .profile       
+ coreutilsCopy	 
+ gnu-keyring.gpg   
+ test.txt
+ .bash_logout	 
+ .profile~      
+ exer1.html		    
+ hwnwdseng.htm    
+ test.txt~
+ .cache		 
+ .ssh	        
+ exer2.diff		    
+ hwords	      
+ test2
+ .config	 
+ .viminfo       
+ exer2.html		    
+ index.html	      
+ tr
+ .cshrc		 
+ CS33	        
+ exer2.html~		    
+ junk	      
+ words
+ .elinks	 
+ assign1.html   
+ exer3.diff		    
+ key1.txt
+ .emacs.d	 
+ assign2.html   
+ exer3.html		    
+ key1.txt~
+ We notice that the bug has been reproduced. The directories "." and ".." are 
+listed along with all the other directories, and we want to make it so the -A
+ overrides the -a and doesn't output "." and "..".
+ 
+4. (First cd into the coreutils-8.29 directory with [cd coreutils-8.29])
+Command: [emacs patch.diff]
+This command creates the patch.diff file. We then copy the patch from the bug 
+website and then paste it inside of emacs.
+Command: [patch -p1 < patch.diff]
+This command applies the patch. the -p1 strips the smallest prefix containing 
+1 leading slash from each file name found in the patch file.
+
+5. Command: [autoreconf --force --install]
+This command updates our make configurations.
+Command: [make]
+This compiles the package again.
+
+6. [make install]
+The make install command installs the programs and any data files and 
+documentation (it installs the package).
+[cd ~]
+Go to home directory.
+[coreutilsCopy/bin/ls -aA]
+Output: 
+'#exer1.html#'	 
+.login		 
+coreutils-8.29.tar.xz      
+exer4.html     
+sameln~
+'#exer4.diff#'	 
+.logout	  
+coreutils-8.29.tar.xz.sig   
+exer4.html~     
+test
+ .bash_history	 
+ .profile	  
+ coreutilsCopy		    
+ gnu-keyring.gpg   
+ test.txt
+ .bash_logout	 
+ .profile~	  
+ exer1.html	    
+ hwnwdseng.htm     
+ test.txt~
+ .cache		 
+ .ssh		  
+ exer2.diff		      
+ hwords	        
+ test2
+ .config	 
+ .viminfo	  
+ exer2.html		      
+ index.html        
+ tr
+ .cshrc		 
+ CS33		  
+ exer2.html~		      
+ junk	       
+ words
+ .elinks	 
+ assign1.html	  
+ exer3.diff		      
+ key1.txt
+ .emacs.d	 
+ assign2.html	  
+ exer3.html		      
+ key1.txt~
+ .gnupg		 
+ buildwords	  
+ exer3.html~		      
+ perl5
+ .local		 
+ coreutils-8.29   
+ exer4.diff		      
+ sameln
+
+We notice that our fix did change the bug. 
+We do not see ".." and ".". 
+

@@ -1,0 +1,1008 @@
+Bradley Mont
+CS 35L Lab 8, Rahul Dhavalikar
+Assignment 7. Dynamic linking
+Laboratory: Who's linked to what?
+
+1. Command: [emacs lab7.c]
+We create a C file named lab7.c that computes cos(sqrt(3.0)) and prints it using the printf format "%.17g".
+We then write the following code in lab7.c to correctly output cos(sqrt(3.0)):
+#include <stdio.h>
+#include <math.h>
+
+int main(void)
+{
+  printf("%.17g", cos(sqrt(3.0)));
+  return 0;
+}
+
+2. Command: [gcc lab7.c -o lab7]
+We run this command to compile and build the C program. We name the executable file "lab7".
+
+3. Command: [./lab7]
+We run the executable to make sure that our program works correctly. We get the following output:
+-0.16055653857469052
+This is indeed cos(sqrt(3.0)), so our program works as intended.
+
+4. Command: [ldd ./lab7]
+We run the ldd command to see which dynamic libraries our program uses.
+We get the following output:
+	linux-vdso.so.1 =>  (0x00007ffe1c33e000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007fc45d357000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007fc45d724000)
+
+5. Command: [strace ./lab7]
+We then use the strace command to see which system calls our program makes.
+We get the following output:
+execve("./lab7", ["./lab7"], [/* 38 vars */]) = 0
+brk(NULL)                               = 0x2514000
+mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7f2301dbe000
+access("/etc/ld.so.preload", R_OK)      = -1 ENOENT (No such file or directory)
+open("/etc/ld.so.cache", O_RDONLY|O_CLOEXEC) = 3
+fstat(3, {st_mode=S_IFREG|0644, st_size=155561, ...}) = 0
+mmap(NULL, 155561, PROT_READ, MAP_PRIVATE, 3, 0) = 0x7f2301d98000
+close(3)                                = 0
+open("/lib64/libc.so.6", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\2\1\1\3\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0\340$\2\0\0\0\0\0"..., 832) = 832
+fstat(3, {st_mode=S_IFREG|0755, st_size=2151832, ...}) = 0
+mmap(NULL, 3981792, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x7f23017d1000
+mprotect(0x7f2301994000, 2093056, PROT_NONE) = 0
+mmap(0x7f2301b93000, 24576, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x1c2000) = 0x7f2301b93000
+mmap(0x7f2301b99000, 16864, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x7f2301b99000
+close(3)                                = 0
+mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7f2301d97000
+mmap(NULL, 8192, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7f2301d95000
+arch_prctl(ARCH_SET_FS, 0x7f2301d95740) = 0
+mprotect(0x7f2301b93000, 16384, PROT_READ) = 0
+mprotect(0x600000, 4096, PROT_READ)     = 0
+mprotect(0x7f2301dbf000, 4096, PROT_READ) = 0
+munmap(0x7f2301d98000, 155561)          = 0
+fstat(1, {st_mode=S_IFCHR|0620, st_rdev=makedev(136, 16), ...}) = 0
+mmap(NULL, 4096, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7f2301dbd000
+write(1, "-0.16055653857469052", 20-0.16055653857469052)    = 20
+exit_group(0)                           = ?
++++ exited with 0 +++
+
+Here is how some of the above calls are related to dynamic linking:
+
+1. With the following calls, the dynamic linker loads ld.so: 
+access("/etc/ld.so.preload", R_OK)      = -1 ENOENT (No such file or directory)
+open("/etc/ld.so.cache", O_RDONLY|O_CLOEXEC) = 3
+fstat(3, {st_mode=S_IFREG|0644, st_size=155561, ...}) = 0
+mmap(NULL, 155561, PROT_READ, MAP_PRIVATE, 3, 0) = 0x7f2301d98000
+close(3)
+
+2. With the following calls, the dynamic linker loads libc.so.6: 
+open("/lib64/libc.so.6", O_RDONLY|O_CLOEXEC) = 3
+read(3, "\177ELF\2\1\1\3\0\0\0\0\0\0\0\0\3\0>\0\1\0\0\0\340$\2\0\0\0\0\0"..., 832) = 832
+fstat(3, {st_mode=S_IFREG|0755, st_size=2151832, ...}) = 0
+mmap(NULL, 3981792, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_DENYWRITE, 3, 0) = 0x7f23017d1000
+mprotect(0x7f2301994000, 2093056, PROT_NONE) = 0
+mmap(0x7f2301b93000, 24576, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x1c2000) = 0x7f2301b93000
+mmap(0x7f2301b99000, 16864, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_FIXED|MAP_ANONYMOUS, -1, 0) = 0x7f2301b99000
+close(3) 
+
+3. The following call is a write command to stdout by the loaded stdio library.
+write(1, "-0.16055653857469052", 20-0.16055653857469052)    = 20
+
+Summary of commands and their relationships to dynamic linking:
+open: opens the libraries with the code to be dynamically linked
+read: reads the data about the dynamic library
+close: closes the library after dynamic linking
+fstat: returns the size of the library, so it can allocate the correct amount of space needed
+mmap: creates a new mapping in the virtual address space of the calling process (between library and .text/.data)
+mprotect: protects the mapping of the library from any type of attacks
+
+6. Command: [ls /usr/bin | awk 'NR%101==804993030%101']
+We run this command to get a list of two dozen commands to investigate.
+We get the following output:
+GET
+apxs
+centrino-decode
+cupstestdsc
+dos2unix
+ffcfstress
+gifmaker.pyc
+gst-feedback-0.10
+hwloc-calc
+jconsole
+kmenuedit
+ldns-zcat
+mailq.sendmail
+needs-restarting
+ntpstat
+pax11publish
+player.py
+pwdx
+rpcclient
+shasum
+sync
+touch
+whereis
+xprop
+
+7. Command: [emacs ldd_run]
+We want to invoke ldd on each command in our list and investigate any error messages that might occur.
+Instead of running ldd for every command above, we create a shell script called ldd_run that calls
+ldd on each of the above commands.
+Here is the code for ldd_run:
+#!/bin/bash
+
+for x in "$(ls /usr/bin | awk 'NR%101==804993030%101'
+$1)"; do
+	y=`which $x`
+	ldd $y
+done
+
+8. Command: [chmod +x ldd_run]
+We add permission to execute for ldd_run.
+
+9. Command: [./ldd_run]
+We run the script to invoke ldd on every command in our list and investigate any error messages.
+We get the following output:
+which: no gifmaker.pyc in (/usr/local/cs/bin:/usr/lib64/qt-3.3/bin:/u/ch/ugrad/bradley/perl5/bin:/usr/local/bin:/usr/bin:/usr/X11R6/bin:/usr/local/cs/bin:/u/ch/ugrad/bradley/bin)
+/usr/bin/GET:
+	not a dynamic executable
+/usr/bin/apxs:
+	not a dynamic executable
+/usr/bin/centrino-decode:
+	linux-vdso.so.1 =>  (0x00007fff0bb4b000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007fbb55381000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007fbb5574e000)
+/usr/bin/cupstestdsc:
+	linux-vdso.so.1 =>  (0x00007ffdcbfcb000)
+	libcups.so.2 => /lib64/libcups.so.2 (0x00007f5fb5d81000)
+	libgssapi_krb5.so.2 => /lib64/libgssapi_krb5.so.2 (0x00007f5fb5b34000)
+	libkrb5.so.3 => /lib64/libkrb5.so.3 (0x00007f5fb584c000)
+	libk5crypto.so.3 => /lib64/libk5crypto.so.3 (0x00007f5fb5619000)
+	libcom_err.so.2 => /lib64/libcom_err.so.2 (0x00007f5fb5415000)
+	libssl.so.10 => /lib64/libssl.so.10 (0x00007f5fb51a4000)
+	libcrypto.so.10 => /lib64/libcrypto.so.10 (0x00007f5fb4d43000)
+	libavahi-common.so.3 => /lib64/libavahi-common.so.3 (0x00007f5fb4b36000)
+	libavahi-client.so.3 => /lib64/libavahi-client.so.3 (0x00007f5fb4925000)
+	libz.so.1 => /lib64/libz.so.1 (0x00007f5fb470f000)
+	libpthread.so.0 => /lib64/libpthread.so.0 (0x00007f5fb44f3000)
+	libm.so.6 => /lib64/libm.so.6 (0x00007f5fb41f1000)
+	libcrypt.so.1 => /lib64/libcrypt.so.1 (0x00007f5fb3fba000)
+	libaudit.so.1 => /lib64/libaudit.so.1 (0x00007f5fb3d91000)
+	libselinux.so.1 => /lib64/libselinux.so.1 (0x00007f5fb3b6a000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007f5fb379d000)
+	libkrb5support.so.0 => /lib64/libkrb5support.so.0 (0x00007f5fb358f000)
+	libdl.so.2 => /lib64/libdl.so.2 (0x00007f5fb338b000)
+	libkeyutils.so.1 => /lib64/libkeyutils.so.1 (0x00007f5fb3187000)
+	libresolv.so.2 => /lib64/libresolv.so.2 (0x00007f5fb2f6e000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f5fb61ee000)
+	libdbus-1.so.3 => /lib64/libdbus-1.so.3 (0x00007f5fb2d1e000)
+	libfreebl3.so => /lib64/libfreebl3.so (0x00007f5fb2b1b000)
+	libcap-ng.so.0 => /lib64/libcap-ng.so.0 (0x00007f5fb2915000)
+	libpcre.so.1 => /lib64/libpcre.so.1 (0x00007f5fb26b3000)
+	libsystemd.so.0 => /lib64/libsystemd.so.0 (0x00007f5fb2482000)
+	libcap.so.2 => /lib64/libcap.so.2 (0x00007f5fb227d000)
+	librt.so.1 => /lib64/librt.so.1 (0x00007f5fb2075000)
+	liblzma.so.5 => /lib64/liblzma.so.5 (0x00007f5fb1e4f000)
+	liblz4.so.1 => /lib64/liblz4.so.1 (0x00007f5fb1c3a000)
+	libgcrypt.so.11 => /lib64/libgcrypt.so.11 (0x00007f5fb19b9000)
+	libgpg-error.so.0 => /lib64/libgpg-error.so.0 (0x00007f5fb17b4000)
+	libdw.so.1 => /lib64/libdw.so.1 (0x00007f5fb156d000)
+	libgcc_s.so.1 => /lib64/libgcc_s.so.1 (0x00007f5fb1357000)
+	libattr.so.1 => /lib64/libattr.so.1 (0x00007f5fb1152000)
+	libelf.so.1 => /lib64/libelf.so.1 (0x00007f5fb0f3a000)
+	libbz2.so.1 => /lib64/libbz2.so.1 (0x00007f5fb0d2a000)
+/usr/bin/dos2unix:
+	linux-vdso.so.1 =>  (0x00007fff23f27000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007f5375043000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f5375410000)
+/usr/bin/ffcfstress:
+	linux-vdso.so.1 =>  (0x00007ffd0e583000)
+	libm.so.6 => /lib64/libm.so.6 (0x00007f135707f000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007f1356cb2000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f1357381000)
+/usr/bin/gst-feedback-0.10:
+	not a dynamic executable
+/usr/bin/hwloc-calc:
+	linux-vdso.so.1 =>  (0x00007ffdb93ce000)
+	libhwloc.so.5 => /lib64/libhwloc.so.5 (0x00007fcc4f1ee000)
+	libm.so.6 => /lib64/libm.so.6 (0x00007fcc4eeec000)
+	libnuma.so.1 => /lib64/libnuma.so.1 (0x00007fcc4ece0000)
+	libltdl.so.7 => /lib64/libltdl.so.7 (0x00007fcc4ead6000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007fcc4e709000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007fcc4f42b000)
+	libgcc_s.so.1 => /lib64/libgcc_s.so.1 (0x00007fcc4e4f3000)
+	libdl.so.2 => /lib64/libdl.so.2 (0x00007fcc4e2ef000)
+/usr/local/cs/bin/jconsole:
+	linux-vdso.so.1 =>  (0x00007ffc5a9ed000)
+	libz.so.1 => /lib64/libz.so.1 (0x00007f9b35f19000)
+	libpthread.so.0 => /lib64/libpthread.so.0 (0x00007f9b35cfd000)
+	libjli.so => not found
+	libdl.so.2 => /lib64/libdl.so.2 (0x00007f9b35af9000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007f9b3572c000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f9b3612f000)
+/usr/bin/kmenuedit:
+	linux-vdso.so.1 =>  (0x00007ffc4a1ee000)
+	libkdeinit4_kmenuedit.so => /lib64/libkdeinit4_kmenuedit.so (0x00007fe2fdbc1000)
+	libkio.so.5 => /lib64/libkio.so.5 (0x00007fe2fd708000)
+	libQtNetwork.so.4 => /lib64/libQtNetwork.so.4 (0x00007fe2fd3c1000)
+	libkdeui.so.5 => /lib64/libkdeui.so.5 (0x00007fe2fcd56000)
+	libQtGui.so.4 => /lib64/libQtGui.so.4 (0x00007fe2fc071000)
+	libQtSvg.so.4 => /lib64/libQtSvg.so.4 (0x00007fe2fbe19000)
+	libkdecore.so.5 => /lib64/libkdecore.so.5 (0x00007fe2fb946000)
+	libQtCore.so.4 => /lib64/libQtCore.so.4 (0x00007fe2fb458000)
+	libpthread.so.0 => /lib64/libpthread.so.0 (0x00007fe2fb23c000)
+	libQtXml.so.4 => /lib64/libQtXml.so.4 (0x00007fe2faff7000)
+	libQtDBus.so.4 => /lib64/libQtDBus.so.4 (0x00007fe2fad79000)
+	libstdc++.so.6 => /lib64/libstdc++.so.6 (0x00007fe2faa72000)
+	libm.so.6 => /lib64/libm.so.6 (0x00007fe2fa770000)
+	libgcc_s.so.1 => /lib64/libgcc_s.so.1 (0x00007fe2fa55a000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007fe2fa18d000)
+	libnepomuk.so.4 => /lib64/libnepomuk.so.4 (0x00007fe2f9ebe000)
+	libnepomukquery.so.4 => /lib64/libnepomukquery.so.4 (0x00007fe2f9c75000)
+	libnepomukutils.so.4 => /lib64/libnepomukutils.so.4 (0x00007fe2f9a39000)
+	libz.so.1 => /lib64/libz.so.1 (0x00007fe2f9823000)
+	libSM.so.6 => /lib64/libSM.so.6 (0x00007fe2f961b000)
+	libICE.so.6 => /lib64/libICE.so.6 (0x00007fe2f93ff000)
+	libX11.so.6 => /lib64/libX11.so.6 (0x00007fe2f90c1000)
+	libXext.so.6 => /lib64/libXext.so.6 (0x00007fe2f8eaf000)
+	libXft.so.2 => /lib64/libXft.so.2 (0x00007fe2f8c99000)
+	libXau.so.6 => /lib64/libXau.so.6 (0x00007fe2f8a95000)
+	libXpm.so.4 => /lib64/libXpm.so.4 (0x00007fe2f8883000)
+	libstreamanalyzer.so.0 => /lib64/libstreamanalyzer.so.0 (0x00007fe2f8600000)
+	libstreams.so.0 => /lib64/libstreams.so.0 (0x00007fe2f83c7000)
+	libsolid.so.4 => /lib64/libsolid.so.4 (0x00007fe2f80c7000)
+	libacl.so.1 => /lib64/libacl.so.1 (0x00007fe2f7ebe000)
+	libattr.so.1 => /lib64/libattr.so.1 (0x00007fe2f7cb9000)
+	libXrender.so.1 => /lib64/libXrender.so.1 (0x00007fe2f7aae000)
+	libsoprano.so.4 => /lib64/libsoprano.so.4 (0x00007fe2f77c1000)
+	libssl.so.10 => /lib64/libssl.so.10 (0x00007fe2f7550000)
+	libcrypto.so.10 => /lib64/libcrypto.so.10 (0x00007fe2f70ef000)
+	libqca.so.2 => /lib64/libqca.so.2 (0x00007fe2f6dd7000)
+	libattica.so.0.4 => /lib64/libattica.so.0.4 (0x00007fe2f6add000)
+	libdbusmenu-qt.so.2 => /lib64/libdbusmenu-qt.so.2 (0x00007fe2f68ac000)
+	libXtst.so.6 => /lib64/libXtst.so.6 (0x00007fe2f66a6000)
+	libXcursor.so.1 => /lib64/libXcursor.so.1 (0x00007fe2f649b000)
+	libXfixes.so.3 => /lib64/libXfixes.so.3 (0x00007fe2f6295000)
+	libgthread-2.0.so.0 => /lib64/libgthread-2.0.so.0 (0x00007fe2f6093000)
+	libglib-2.0.so.0 => /lib64/libglib-2.0.so.0 (0x00007fe2f5d7f000)
+	libpng15.so.15 => /lib64/libpng15.so.15 (0x00007fe2f5b54000)
+	libfreetype.so.6 => /lib64/libfreetype.so.6 (0x00007fe2f58ae000)
+	libgobject-2.0.so.0 => /lib64/libgobject-2.0.so.0 (0x00007fe2f565d000)
+	libXi.so.6 => /lib64/libXi.so.6 (0x00007fe2f544d000)
+	libXrandr.so.2 => /lib64/libXrandr.so.2 (0x00007fe2f5242000)
+	libXinerama.so.1 => /lib64/libXinerama.so.1 (0x00007fe2f503f000)
+	libfontconfig.so.1 => /lib64/libfontconfig.so.1 (0x00007fe2f4e02000)
+	libbz2.so.1 => /lib64/libbz2.so.1 (0x00007fe2f4bf2000)
+	liblzma.so.5 => /lib64/liblzma.so.5 (0x00007fe2f49cc000)
+	libresolv.so.2 => /lib64/libresolv.so.2 (0x00007fe2f47b3000)
+	libfam.so.0 => /lib64/libfam.so.0 (0x00007fe2f45ab000)
+	libdl.so.2 => /lib64/libdl.so.2 (0x00007fe2f43a7000)
+	librt.so.1 => /lib64/librt.so.1 (0x00007fe2f419f000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007fe2fddfc000)
+	libdbus-1.so.3 => /lib64/libdbus-1.so.3 (0x00007fe2f3f4f000)
+	libsopranoclient.so.1 => /lib64/libsopranoclient.so.1 (0x00007fe2f3d03000)
+	libuuid.so.1 => /lib64/libuuid.so.1 (0x00007fe2f3afe000)
+	libxcb.so.1 => /lib64/libxcb.so.1 (0x00007fe2f38d6000)
+	libxml2.so.2 => /lib64/libxml2.so.2 (0x00007fe2f356c000)
+	libudev.so.1 => /lib64/libudev.so.1 (0x00007fe2f3356000)
+	libgssapi_krb5.so.2 => /lib64/libgssapi_krb5.so.2 (0x00007fe2f3109000)
+	libkrb5.so.3 => /lib64/libkrb5.so.3 (0x00007fe2f2e21000)
+	libcom_err.so.2 => /lib64/libcom_err.so.2 (0x00007fe2f2c1d000)
+	libk5crypto.so.3 => /lib64/libk5crypto.so.3 (0x00007fe2f29ea000)
+	libpcre.so.1 => /lib64/libpcre.so.1 (0x00007fe2f2788000)
+	libffi.so.6 => /lib64/libffi.so.6 (0x00007fe2f2580000)
+	libexpat.so.1 => /lib64/libexpat.so.1 (0x00007fe2f2356000)
+	libsystemd.so.0 => /lib64/libsystemd.so.0 (0x00007fe2f2125000)
+	libcap.so.2 => /lib64/libcap.so.2 (0x00007fe2f1f20000)
+	libdw.so.1 => /lib64/libdw.so.1 (0x00007fe2f1cd9000)
+	libkrb5support.so.0 => /lib64/libkrb5support.so.0 (0x00007fe2f1acb000)
+	libkeyutils.so.1 => /lib64/libkeyutils.so.1 (0x00007fe2f18c7000)
+	libselinux.so.1 => /lib64/libselinux.so.1 (0x00007fe2f16a0000)
+	liblz4.so.1 => /lib64/liblz4.so.1 (0x00007fe2f148b000)
+	libgcrypt.so.11 => /lib64/libgcrypt.so.11 (0x00007fe2f120a000)
+	libgpg-error.so.0 => /lib64/libgpg-error.so.0 (0x00007fe2f1005000)
+	libelf.so.1 => /lib64/libelf.so.1 (0x00007fe2f0ded000)
+/usr/bin/ldns-zcat:
+	linux-vdso.so.1 =>  (0x00007ffe41e96000)
+	libpcap.so.1 => /lib64/libpcap.so.1 (0x00007fe27e98b000)
+	libldns.so.1 => /lib64/libldns.so.1 (0x00007fe27e732000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007fe27e365000)
+	libcrypto.so.10 => /lib64/libcrypto.so.10 (0x00007fe27df04000)
+	libdl.so.2 => /lib64/libdl.so.2 (0x00007fe27dd00000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007fe27ebcc000)
+	libz.so.1 => /lib64/libz.so.1 (0x00007fe27daea000)
+/usr/bin/mailq.sendmail:
+	linux-vdso.so.1 =>  (0x00007ffe28290000)
+	libssl.so.10 => /lib64/libssl.so.10 (0x00007f6a86204000)
+	libcrypto.so.10 => /lib64/libcrypto.so.10 (0x00007f6a85da3000)
+	libnsl.so.1 => /lib64/libnsl.so.1 (0x00007f6a85b89000)
+	libwrap.so.0 => /lib64/libwrap.so.0 (0x00007f6a8597e000)
+	libhesiod.so.0 => /lib64/libhesiod.so.0 (0x00007f6a85779000)
+	libcrypt.so.1 => /lib64/libcrypt.so.1 (0x00007f6a85542000)
+	libdb-5.3.so => /lib64/libdb-5.3.so (0x00007f6a85184000)
+	libresolv.so.2 => /lib64/libresolv.so.2 (0x00007f6a84f6b000)
+	libsasl2.so.3 => /lib64/libsasl2.so.3 (0x00007f6a84d4e000)
+	libldap-2.4.so.2 => /lib64/libldap-2.4.so.2 (0x00007f6a84af9000)
+	liblber-2.4.so.2 => /lib64/liblber-2.4.so.2 (0x00007f6a848ea000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007f6a8451d000)
+	libgssapi_krb5.so.2 => /lib64/libgssapi_krb5.so.2 (0x00007f6a842d0000)
+	libkrb5.so.3 => /lib64/libkrb5.so.3 (0x00007f6a83fe8000)
+	libcom_err.so.2 => /lib64/libcom_err.so.2 (0x00007f6a83de4000)
+	libk5crypto.so.3 => /lib64/libk5crypto.so.3 (0x00007f6a83bb1000)
+	libdl.so.2 => /lib64/libdl.so.2 (0x00007f6a839ad000)
+	libz.so.1 => /lib64/libz.so.1 (0x00007f6a83797000)
+	libidn.so.11 => /lib64/libidn.so.11 (0x00007f6a83564000)
+	libfreebl3.so => /lib64/libfreebl3.so (0x00007f6a83361000)
+	libpthread.so.0 => /lib64/libpthread.so.0 (0x00007f6a83145000)
+	libkrb5support.so.0 => /lib64/libkrb5support.so.0 (0x00007f6a82f37000)
+	libssl3.so => /lib64/libssl3.so (0x00007f6a82ce5000)
+	libsmime3.so => /lib64/libsmime3.so (0x00007f6a82abe000)
+	libnss3.so => /lib64/libnss3.so (0x00007f6a82791000)
+	libnssutil3.so => /lib64/libnssutil3.so (0x00007f6a82562000)
+	libplds4.so => /lib64/libplds4.so (0x00007f6a8235e000)
+	libplc4.so => /lib64/libplc4.so (0x00007f6a82159000)
+	libnspr4.so => /lib64/libnspr4.so (0x00007f6a81f1b000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f6a867e0000)
+	libkeyutils.so.1 => /lib64/libkeyutils.so.1 (0x00007f6a81d17000)
+	libselinux.so.1 => /lib64/libselinux.so.1 (0x00007f6a81af0000)
+	librt.so.1 => /lib64/librt.so.1 (0x00007f6a818e8000)
+	libpcre.so.1 => /lib64/libpcre.so.1 (0x00007f6a81686000)
+/usr/bin/needs-restarting:
+	not a dynamic executable
+/usr/bin/ntpstat:
+	linux-vdso.so.1 =>  (0x00007ffdb6fe3000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007efce8060000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007efce8630000)
+/usr/bin/pax11publish:
+	linux-vdso.so.1 =>  (0x00007ffc6d9d9000)
+	libpulse.so.0 => /lib64/libpulse.so.0 (0x00007fd00f1c9000)
+	libpulsecommon-10.0.so => /usr/lib64/pulseaudio/libpulsecommon-10.0.so (0x00007fd00ef49000)
+	libX11-xcb.so.1 => /lib64/libX11-xcb.so.1 (0x00007fd00ed47000)
+	libX11.so.6 => /lib64/libX11.so.6 (0x00007fd00ea09000)
+	libxcb.so.1 => /lib64/libxcb.so.1 (0x00007fd00e7e1000)
+	libICE.so.6 => /lib64/libICE.so.6 (0x00007fd00e5c5000)
+	libSM.so.6 => /lib64/libSM.so.6 (0x00007fd00e3bd000)
+	libXtst.so.6 => /lib64/libXtst.so.6 (0x00007fd00e1b7000)
+	libcap.so.2 => /lib64/libcap.so.2 (0x00007fd00dfb2000)
+	libpthread.so.0 => /lib64/libpthread.so.0 (0x00007fd00dd96000)
+	librt.so.1 => /lib64/librt.so.1 (0x00007fd00db8e000)
+	libdl.so.2 => /lib64/libdl.so.2 (0x00007fd00d98a000)
+	libm.so.6 => /lib64/libm.so.6 (0x00007fd00d688000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007fd00d2bb000)
+	libdbus-1.so.3 => /lib64/libdbus-1.so.3 (0x00007fd00d06b000)
+	libsystemd.so.0 => /lib64/libsystemd.so.0 (0x00007fd00ce3a000)
+	libwrap.so.0 => /lib64/libwrap.so.0 (0x00007fd00cc2f000)
+	libsndfile.so.1 => /lib64/libsndfile.so.1 (0x00007fd00c9d0000)
+	libasyncns.so.0 => /lib64/libasyncns.so.0 (0x00007fd00c7ca000)
+	libXau.so.6 => /lib64/libXau.so.6 (0x00007fd00c5c6000)
+	libuuid.so.1 => /lib64/libuuid.so.1 (0x00007fd00c3c1000)
+	libXext.so.6 => /lib64/libXext.so.6 (0x00007fd00c1af000)
+	libXi.so.6 => /lib64/libXi.so.6 (0x00007fd00bf9f000)
+	libattr.so.1 => /lib64/libattr.so.1 (0x00007fd00bd9a000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007fd00f61c000)
+	libselinux.so.1 => /lib64/libselinux.so.1 (0x00007fd00bb73000)
+	liblzma.so.5 => /lib64/liblzma.so.5 (0x00007fd00b94d000)
+	liblz4.so.1 => /lib64/liblz4.so.1 (0x00007fd00b738000)
+	libgcrypt.so.11 => /lib64/libgcrypt.so.11 (0x00007fd00b4b7000)
+	libgpg-error.so.0 => /lib64/libgpg-error.so.0 (0x00007fd00b2b2000)
+	libresolv.so.2 => /lib64/libresolv.so.2 (0x00007fd00b099000)
+	libdw.so.1 => /lib64/libdw.so.1 (0x00007fd00ae52000)
+	libgcc_s.so.1 => /lib64/libgcc_s.so.1 (0x00007fd00ac3c000)
+	libnsl.so.1 => /lib64/libnsl.so.1 (0x00007fd00aa22000)
+	libgsm.so.1 => /lib64/libgsm.so.1 (0x00007fd00a816000)
+	libFLAC.so.8 => /lib64/libFLAC.so.8 (0x00007fd00a5d1000)
+	libvorbisenc.so.2 => /lib64/libvorbisenc.so.2 (0x00007fd00a102000)
+	libvorbis.so.0 => /lib64/libvorbis.so.0 (0x00007fd009ed5000)
+	libogg.so.0 => /lib64/libogg.so.0 (0x00007fd009cce000)
+	libpcre.so.1 => /lib64/libpcre.so.1 (0x00007fd009a6c000)
+	libelf.so.1 => /lib64/libelf.so.1 (0x00007fd009854000)
+	libz.so.1 => /lib64/libz.so.1 (0x00007fd00963e000)
+	libbz2.so.1 => /lib64/libbz2.so.1 (0x00007fd00942e000)
+/usr/bin/player.py:
+	not a dynamic executable
+/usr/bin/pwdx:
+	linux-vdso.so.1 =>  (0x00007ffe021f4000)
+	libprocps.so.4 => /lib64/libprocps.so.4 (0x00007f02f30e8000)
+	libsystemd.so.0 => /lib64/libsystemd.so.0 (0x00007f02f2eb7000)
+	libdl.so.2 => /lib64/libdl.so.2 (0x00007f02f2cb3000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007f02f28e6000)
+	libcap.so.2 => /lib64/libcap.so.2 (0x00007f02f26e1000)
+	libm.so.6 => /lib64/libm.so.6 (0x00007f02f23df000)
+	librt.so.1 => /lib64/librt.so.1 (0x00007f02f21d7000)
+	libselinux.so.1 => /lib64/libselinux.so.1 (0x00007f02f1fb0000)
+	liblzma.so.5 => /lib64/liblzma.so.5 (0x00007f02f1d8a000)
+	liblz4.so.1 => /lib64/liblz4.so.1 (0x00007f02f1b75000)
+	libgcrypt.so.11 => /lib64/libgcrypt.so.11 (0x00007f02f18f4000)
+	libgpg-error.so.0 => /lib64/libgpg-error.so.0 (0x00007f02f16ef000)
+	libresolv.so.2 => /lib64/libresolv.so.2 (0x00007f02f14d6000)
+	libdw.so.1 => /lib64/libdw.so.1 (0x00007f02f128f000)
+	libgcc_s.so.1 => /lib64/libgcc_s.so.1 (0x00007f02f1079000)
+	libpthread.so.0 => /lib64/libpthread.so.0 (0x00007f02f0e5d000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f02f330f000)
+	libattr.so.1 => /lib64/libattr.so.1 (0x00007f02f0c58000)
+	libpcre.so.1 => /lib64/libpcre.so.1 (0x00007f02f09f6000)
+	libelf.so.1 => /lib64/libelf.so.1 (0x00007f02f07de000)
+	libz.so.1 => /lib64/libz.so.1 (0x00007f02f05c8000)
+	libbz2.so.1 => /lib64/libbz2.so.1 (0x00007f02f03b8000)
+/usr/bin/rpcclient:
+	linux-vdso.so.1 =>  (0x00007ffd72f4e000)
+	libpthread.so.0 => /lib64/libpthread.so.0 (0x00007f71448e5000)
+	libpopt-samba3-samba4.so => /usr/lib64/samba/libpopt-samba3-samba4.so (0x00007f71446e0000)
+	libsamba-util.so.0 => /lib64/libsamba-util.so.0 (0x00007f7144468000)
+	libdcerpc-binding.so.0 => /lib64/libdcerpc-binding.so.0 (0x00007f7144247000)
+	liblibsmb-samba4.so => /usr/lib64/samba/liblibsmb-samba4.so (0x00007f7143fda000)
+	libmsrpc3-samba4.so => /usr/lib64/samba/libmsrpc3-samba4.so (0x00007f7143db9000)
+	libndr-samba-samba4.so => /usr/lib64/samba/libndr-samba-samba4.so (0x00007f7143a82000)
+	liblibcli-lsa3-samba4.so => /usr/lib64/samba/liblibcli-lsa3-samba4.so (0x00007f714387e000)
+	liblibcli-netlogon3-samba4.so => /usr/lib64/samba/liblibcli-netlogon3-samba4.so (0x00007f7143679000)
+	libreplace-samba4.so => /usr/lib64/samba/libreplace-samba4.so (0x00007f7143476000)
+	libsamba-security-samba4.so => /usr/lib64/samba/libsamba-security-samba4.so (0x00007f7143257000)
+	libtrusts-util-samba4.so => /usr/lib64/samba/libtrusts-util-samba4.so (0x00007f7143051000)
+	libndr.so.0 => /lib64/libndr.so.0 (0x00007f7142e3a000)
+	libsmbconf.so.0 => /lib64/libsmbconf.so.0 (0x00007f7142bb0000)
+	libsamba-passdb.so.0 => /lib64/libsamba-passdb.so.0 (0x00007f714297a000)
+	libdcerpc-samba-samba4.so => /usr/lib64/samba/libdcerpc-samba-samba4.so (0x00007f71425d9000)
+	libndr-standard.so.0 => /lib64/libndr-standard.so.0 (0x00007f71420b2000)
+	libcli-spoolss-samba4.so => /usr/lib64/samba/libcli-spoolss-samba4.so (0x00007f7141eac000)
+	libutil-cmdline-samba4.so => /usr/lib64/samba/libutil-cmdline-samba4.so (0x00007f7141ca7000)
+	libsamba-debug-samba4.so => /usr/lib64/samba/libsamba-debug-samba4.so (0x00007f7141aa1000)
+	libgenrand-samba4.so => /usr/lib64/samba/libgenrand-samba4.so (0x00007f714189f000)
+	libtevent-util.so.0 => /lib64/libtevent-util.so.0 (0x00007f714169c000)
+	libgensec-samba4.so => /usr/lib64/samba/libgensec-samba4.so (0x00007f7141471000)
+	libcliauth-samba4.so => /usr/lib64/samba/libcliauth-samba4.so (0x00007f714125d000)
+	libcli-smb-common-samba4.so => /usr/lib64/samba/libcli-smb-common-samba4.so (0x00007f714102d000)
+	libsamba-credentials.so.0 => /lib64/libsamba-credentials.so.0 (0x00007f7140e19000)
+	libndr-samba4.so => /usr/lib64/samba/libndr-samba4.so (0x00007f7140a9c000)
+	libsamba-errors.so.1 => /lib64/libsamba-errors.so.1 (0x00007f7140752000)
+	libutil-reg-samba4.so => /usr/lib64/samba/libutil-reg-samba4.so (0x00007f714054f000)
+	libsamba3-util-samba4.so => /usr/lib64/samba/libsamba3-util-samba4.so (0x00007f7140344000)
+	libserver-role-samba4.so => /usr/lib64/samba/libserver-role-samba4.so (0x00007f7140142000)
+	libtalloc.so.2 => /lib64/libtalloc.so.2 (0x00007f713ff32000)
+	libpopt.so.0 => /lib64/libpopt.so.0 (0x00007f713fd28000)
+	libtevent.so.0 => /lib64/libtevent.so.0 (0x00007f713fb18000)
+	libreadline.so.6 => /lib64/libreadline.so.6 (0x00007f713f8d2000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007f713f505000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f7144e34000)
+	libsamba-hostconfig.so.0 => /lib64/libsamba-hostconfig.so.0 (0x00007f713f2da000)
+	libtime-basic-samba4.so => /usr/lib64/samba/libtime-basic-samba4.so (0x00007f713f0d8000)
+	libaesni-intel-samba4.so => /usr/lib64/samba/libaesni-intel-samba4.so (0x00007f713eed0000)
+	libsocket-blocking-samba4.so => /usr/lib64/samba/libsocket-blocking-samba4.so (0x00007f713ecce000)
+	libsys-rw-samba4.so => /usr/lib64/samba/libsys-rw-samba4.so (0x00007f713eacb000)
+	librt.so.1 => /lib64/librt.so.1 (0x00007f713e8c3000)
+	libsystemd-daemon.so.0 => /lib64/libsystemd-daemon.so.0 (0x00007f713e6bc000)
+	libsamba-sockets-samba4.so => /usr/lib64/samba/libsamba-sockets-samba4.so (0x00007f713e4a3000)
+	libasn1util-samba4.so => /usr/lib64/samba/libasn1util-samba4.so (0x00007f713e29d000)
+	libcli-cldap-samba4.so => /usr/lib64/samba/libcli-cldap-samba4.so (0x00007f713e095000)
+	libCHARSET3-samba4.so => /usr/lib64/samba/libCHARSET3-samba4.so (0x00007f713de92000)
+	libgse-samba4.so => /usr/lib64/samba/libgse-samba4.so (0x00007f713dc6a000)
+	libndr-nbt.so.0 => /lib64/libndr-nbt.so.0 (0x00007f713da54000)
+	libsmb-transport-samba4.so => /usr/lib64/samba/libsmb-transport-samba4.so (0x00007f713d84e000)
+	libcom_err.so.2 => /lib64/libcom_err.so.2 (0x00007f713d64a000)
+	libdbwrap-samba4.so => /usr/lib64/samba/libdbwrap-samba4.so (0x00007f713d43f000)
+	libutil-tdb-samba4.so => /usr/lib64/samba/libutil-tdb-samba4.so (0x00007f713d23b000)
+	libz.so.1 => /lib64/libz.so.1 (0x00007f713d025000)
+	libsecrets3-samba4.so => /usr/lib64/samba/libsecrets3-samba4.so (0x00007f713ce0c000)
+	libinterfaces-samba4.so => /usr/lib64/samba/libinterfaces-samba4.so (0x00007f713cc09000)
+	libtalloc-report-samba4.so => /usr/lib64/samba/libtalloc-report-samba4.so (0x00007f713ca06000)
+	libmessages-dgm-samba4.so => /usr/lib64/samba/libmessages-dgm-samba4.so (0x00007f713c7fb000)
+	libsmbd-shim-samba4.so => /usr/lib64/samba/libsmbd-shim-samba4.so (0x00007f713c5f9000)
+	libserver-id-db-samba4.so => /usr/lib64/samba/libserver-id-db-samba4.so (0x00007f713c3f5000)
+	libiov-buf-samba4.so => /usr/lib64/samba/libiov-buf-samba4.so (0x00007f713c1f3000)
+	libsamba-cluster-support-samba4.so => /usr/lib64/samba/libsamba-cluster-support-samba4.so (0x00007f713bfde000)
+	libmessages-util-samba4.so => /usr/lib64/samba/libmessages-util-samba4.so (0x00007f713bddc000)
+	libutil-setid-samba4.so => /usr/lib64/samba/libutil-setid-samba4.so (0x00007f713bbda000)
+	libtdb-wrap-samba4.so => /usr/lib64/samba/libtdb-wrap-samba4.so (0x00007f713b9d7000)
+	libnsl.so.1 => /lib64/libnsl.so.1 (0x00007f713b7bd000)
+	libtdb.so.1 => /lib64/libtdb.so.1 (0x00007f713b5a6000)
+	libcap.so.2 => /lib64/libcap.so.2 (0x00007f713b3a1000)
+	liblber-2.4.so.2 => /lib64/liblber-2.4.so.2 (0x00007f713b192000)
+	libldap-2.4.so.2 => /lib64/libldap-2.4.so.2 (0x00007f713af3d000)
+	libwbclient.so.0 => /lib64/libwbclient.so.0 (0x00007f713ad2e000)
+	libsamba-modules-samba4.so => /usr/lib64/samba/libsamba-modules-samba4.so (0x00007f713ab2b000)
+	libsystemd-journal.so.0 => /lib64/libsystemd-journal.so.0 (0x00007f713a906000)
+	libsamdb.so.0 => /lib64/libsamdb.so.0 (0x00007f713a6ee000)
+	libauthkrb5-samba4.so => /usr/lib64/samba/libauthkrb5-samba4.so (0x00007f713a4e1000)
+	libkrb5samba-samba4.so => /usr/lib64/samba/libkrb5samba-samba4.so (0x00007f713a2d4000)
+	libcommon-auth-samba4.so => /usr/lib64/samba/libcommon-auth-samba4.so (0x00007f713a0cd000)
+	libgssapi_krb5.so.2 => /lib64/libgssapi_krb5.so.2 (0x00007f7139e80000)
+	libsamdb-common-samba4.so => /usr/lib64/samba/libsamdb-common-samba4.so (0x00007f7139c54000)
+	libldbsamba-samba4.so => /usr/lib64/samba/libldbsamba-samba4.so (0x00007f7139a27000)
+	libkrb5.so.3 => /lib64/libkrb5.so.3 (0x00007f713973f000)
+	libldb.so.1 => /lib64/libldb.so.1 (0x00007f713950f000)
+	libndr-krb5pac.so.0 => /lib64/libndr-krb5pac.so.0 (0x00007f7139301000)
+	libcrypt.so.1 => /lib64/libcrypt.so.1 (0x00007f71390ca000)
+	libdl.so.2 => /lib64/libdl.so.2 (0x00007f7138ec6000)
+	libtinfo.so.5 => /lib64/libtinfo.so.5 (0x00007f7138c9c000)
+	libm.so.6 => /lib64/libm.so.6 (0x00007f713899a000)
+	libdw.so.1 => /lib64/libdw.so.1 (0x00007f7138753000)
+	libgcc_s.so.1 => /lib64/libgcc_s.so.1 (0x00007f713853d000)
+	libcli-ldap-common-samba4.so => /usr/lib64/samba/libcli-ldap-common-samba4.so (0x00007f7138335000)
+	libaddns-samba4.so => /usr/lib64/samba/libaddns-samba4.so (0x00007f713812a000)
+	libcli-nbt-samba4.so => /usr/lib64/samba/libcli-nbt-samba4.so (0x00007f7137f1f000)
+	libmsghdr-samba4.so => /usr/lib64/samba/libmsghdr-samba4.so (0x00007f7137d1c000)
+	libattr.so.1 => /lib64/libattr.so.1 (0x00007f7137b17000)
+	libresolv.so.2 => /lib64/libresolv.so.2 (0x00007f71378fe000)
+	libsasl2.so.3 => /lib64/libsasl2.so.3 (0x00007f71376e1000)
+	libssl.so.10 => /lib64/libssl.so.10 (0x00007f7137470000)
+	libcrypto.so.10 => /lib64/libcrypto.so.10 (0x00007f713700f000)
+	libssl3.so => /lib64/libssl3.so (0x00007f7136dbd000)
+	libsmime3.so => /lib64/libsmime3.so (0x00007f7136b96000)
+	libnss3.so => /lib64/libnss3.so (0x00007f7136869000)
+	libnssutil3.so => /lib64/libnssutil3.so (0x00007f713663a000)
+	libplds4.so => /lib64/libplds4.so (0x00007f7136436000)
+	libplc4.so => /lib64/libplc4.so (0x00007f7136231000)
+	libnspr4.so => /lib64/libnspr4.so (0x00007f7135ff3000)
+	libwinbind-client-samba4.so => /usr/lib64/samba/libwinbind-client-samba4.so (0x00007f7135def000)
+	libselinux.so.1 => /lib64/libselinux.so.1 (0x00007f7135bc8000)
+	liblzma.so.5 => /lib64/liblzma.so.5 (0x00007f71359a2000)
+	liblz4.so.1 => /lib64/liblz4.so.1 (0x00007f713578d000)
+	libgcrypt.so.11 => /lib64/libgcrypt.so.11 (0x00007f713550c000)
+	libgpg-error.so.0 => /lib64/libgpg-error.so.0 (0x00007f7135307000)
+	libk5crypto.so.3 => /lib64/libk5crypto.so.3 (0x00007f71350d4000)
+	libkrb5support.so.0 => /lib64/libkrb5support.so.0 (0x00007f7134ec6000)
+	libkeyutils.so.1 => /lib64/libkeyutils.so.1 (0x00007f7134cc2000)
+	libflag-mapping-samba4.so => /usr/lib64/samba/libflag-mapping-samba4.so (0x00007f7134ac0000)
+	libfreebl3.so => /lib64/libfreebl3.so (0x00007f71348bd000)
+	libelf.so.1 => /lib64/libelf.so.1 (0x00007f71346a5000)
+	libbz2.so.1 => /lib64/libbz2.so.1 (0x00007f7134495000)
+	libpcre.so.1 => /lib64/libpcre.so.1 (0x00007f7134233000)
+/usr/bin/shasum:
+	not a dynamic executable
+/usr/local/cs/bin/sync:
+	linux-vdso.so.1 =>  (0x00007ffc2cd9e000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007f2fc3720000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f2fc3aed000)
+/usr/local/cs/bin/touch:
+	linux-vdso.so.1 =>  (0x00007ffd3030d000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007fc1bc376000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007fc1bc743000)
+/usr/bin/whereis:
+	linux-vdso.so.1 =>  (0x00007ffc2799a000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007f3b501e8000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f3b505b5000)
+/usr/bin/xprop:
+	linux-vdso.so.1 =>  (0x00007fff63f39000)
+	libX11.so.6 => /lib64/libX11.so.6 (0x00007f8f41eb4000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007f8f41ae7000)
+	libxcb.so.1 => /lib64/libxcb.so.1 (0x00007f8f418bf000)
+	libdl.so.2 => /lib64/libdl.so.2 (0x00007f8f416bb000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f8f421f2000)
+	libXau.so.6 => /lib64/libXau.so.6 (0x00007f8f414b7000)
+
+We see the following errors:
+
+1. which: no gifmaker.pyc in (/usr/local/cs/bin:/usr/lib64/qt-3.3/bin:/u/ch/ugrad/bradley/perl5/bin:
+/usr/local/bin:/usr/bin:/usr/X11R6/bin:/usr/local/cs/bin:/u/ch/ugrad/bradley/bin)
+- This error occurs because we do not have read permissions for this command.
+
+/usr/bin/GET:
+	not a dynamic executable
+-This error occurs because /usr/bin/GET is a perl script. Scripts aren't compiled programs, so 
+they definitely are not dynamic executables.
+
+/usr/bin/apxs:
+	not a dynamic executable
+-This error occurs because /usr/bin/apxs is a perl script. Scripts aren't compiled programs, so 
+they definitely are not dynamic executables.
+
+/usr/bin/gst-feedback-0.10:
+	not a dynamic executable
+-This error occurs because /usr/bin/gst-feedback-0.10 is a shell script. Scripts aren't compiled programs, so 
+they definitely are not dynamic executables.
+
+/usr/bin/needs-restarting:
+	not a dynamic executable
+-This error occurs because /usr/bin/needs-restarting is a python script. Scripts aren't compiled programs, so 
+they definitely are not dynamic executables.
+
+/usr/bin/player.py:
+	not a dynamic executable
+-This error occurs because /usr/bin/player.py is a python script. Scripts aren't compiled programs, so 
+they definitely are not dynamic executables.
+
+/usr/bin/shasum:
+	not a dynamic executable
+-This error occurs because /usr/bin/shasum is a perl script. Scripts aren't compiled programs, so 
+they definitely are not dynamic executables.
+
+10. Command: [./ldd_run | grep so | sort -u]
+Finally, run this command to get a sorted list of every dynamic library 
+that is used by any of the commands on our list (omitting duplicates).
+The [grep so] gets just the dynamic libraries (dynamic libraries have a .so extension).
+The [sort -u] sorts the dynamic libraries, omitting any duplicates (-u = unique).
+We get the following output:
+which: no gifmaker.pyc in (/usr/local/cs/bin:/usr/lib64/qt-3.3/bin:/u/ch/ugrad/bradley/perl5/bin:/usr/local/bin:/usr/bin:/usr/X11R6/bin:/usr/local/cs/bin:/u/ch/ugrad/bradley/bin)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f0d55bff000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f35e4391000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f3c289cd000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f555aca0000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f5f341cc000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f786089e000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f922aa01000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f9b3f4ab000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f9bb4bde000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007fa0d9926000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007fa164c80000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007fa9168c6000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007fbf575b4000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007fc53b883000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007fda01f53000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007fefe056e000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007ff11e0c3000)
+	libCHARSET3-samba4.so => /usr/lib64/samba/libCHARSET3-samba4.so (0x00007f78598fc000)
+	libFLAC.so.8 => /lib64/libFLAC.so.8 (0x00007f5555c55000)
+	libICE.so.6 => /lib64/libICE.so.6 (0x00007f5559c49000)
+	libICE.so.6 => /lib64/libICE.so.6 (0x00007f9b3aaae000)
+	libQtCore.so.4 => /lib64/libQtCore.so.4 (0x00007f9b3cb07000)
+	libQtDBus.so.4 => /lib64/libQtDBus.so.4 (0x00007f9b3c428000)
+	libQtGui.so.4 => /lib64/libQtGui.so.4 (0x00007f9b3d720000)
+	libQtNetwork.so.4 => /lib64/libQtNetwork.so.4 (0x00007f9b3ea70000)
+	libQtSvg.so.4 => /lib64/libQtSvg.so.4 (0x00007f9b3d4c8000)
+	libQtXml.so.4 => /lib64/libQtXml.so.4 (0x00007f9b3c6a6000)
+	libSM.so.6 => /lib64/libSM.so.6 (0x00007f5559a41000)
+	libSM.so.6 => /lib64/libSM.so.6 (0x00007f9b3acca000)
+	libX11-xcb.so.1 => /lib64/libX11-xcb.so.1 (0x00007f555a3cb000)
+	libX11.so.6 => /lib64/libX11.so.6 (0x00007f3c2868f000)
+	libX11.so.6 => /lib64/libX11.so.6 (0x00007f555a08d000)
+	libX11.so.6 => /lib64/libX11.so.6 (0x00007f9b3a770000)
+	libXau.so.6 => /lib64/libXau.so.6 (0x00007f3c27c92000)
+	libXau.so.6 => /lib64/libXau.so.6 (0x00007f5557c4a000)
+	libXau.so.6 => /lib64/libXau.so.6 (0x00007f9b3a144000)
+	libXcursor.so.1 => /lib64/libXcursor.so.1 (0x00007f9b37b4a000)
+	libXext.so.6 => /lib64/libXext.so.6 (0x00007f5557833000)
+	libXext.so.6 => /lib64/libXext.so.6 (0x00007f9b3a55e000)
+	libXfixes.so.3 => /lib64/libXfixes.so.3 (0x00007f9b37944000)
+	libXft.so.2 => /lib64/libXft.so.2 (0x00007f9b3a348000)
+	libXi.so.6 => /lib64/libXi.so.6 (0x00007f5557623000)
+	libXi.so.6 => /lib64/libXi.so.6 (0x00007f9b36afc000)
+	libXinerama.so.1 => /lib64/libXinerama.so.1 (0x00007f9b366ee000)
+	libXpm.so.4 => /lib64/libXpm.so.4 (0x00007f9b39f32000)
+	libXrandr.so.2 => /lib64/libXrandr.so.2 (0x00007f9b368f1000)
+	libXrender.so.1 => /lib64/libXrender.so.1 (0x00007f9b3915d000)
+	libXtst.so.6 => /lib64/libXtst.so.6 (0x00007f555983b000)
+	libXtst.so.6 => /lib64/libXtst.so.6 (0x00007f9b37d55000)
+	libacl.so.1 => /lib64/libacl.so.1 (0x00007f9b3956d000)
+	libaddns-samba4.so => /usr/lib64/samba/libaddns-samba4.so (0x00007f7853b94000)
+	libaesni-intel-samba4.so => /usr/lib64/samba/libaesni-intel-samba4.so (0x00007f785a93a000)
+	libasn1util-samba4.so => /usr/lib64/samba/libasn1util-samba4.so (0x00007f7859d07000)
+	libasyncns.so.0 => /lib64/libasyncns.so.0 (0x00007f5557e4e000)
+	libattica.so.0.4 => /lib64/libattica.so.0.4 (0x00007f9b3818c000)
+	libattr.so.1 => /lib64/libattr.so.1 (0x00007f555741e000)
+	libattr.so.1 => /lib64/libattr.so.1 (0x00007f7853581000)
+	libattr.so.1 => /lib64/libattr.so.1 (0x00007f9b39368000)
+	libattr.so.1 => /lib64/libattr.so.1 (0x00007fa15fbe4000)
+	libattr.so.1 => /lib64/libattr.so.1 (0x00007fc5391cc000)
+	libaudit.so.1 => /lib64/libaudit.so.1 (0x00007fa162823000)
+	libauthkrb5-samba4.so => /usr/lib64/samba/libauthkrb5-samba4.so (0x00007f7855f4b000)
+	libavahi-client.so.3 => /lib64/libavahi-client.so.3 (0x00007fa1633b7000)
+	libavahi-common.so.3 => /lib64/libavahi-common.so.3 (0x00007fa1635c8000)
+	libbz2.so.1 => /lib64/libbz2.so.1 (0x00007f5554ab2000)
+	libbz2.so.1 => /lib64/libbz2.so.1 (0x00007f784feff000)
+	libbz2.so.1 => /lib64/libbz2.so.1 (0x00007f9b362a1000)
+	libbz2.so.1 => /lib64/libbz2.so.1 (0x00007fa15f7bc000)
+	libbz2.so.1 => /lib64/libbz2.so.1 (0x00007fc53892c000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007f0d54edd000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007f35e3fc4000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007f3c282c2000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007f555893f000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007f5f33afd000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007f785af6f000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007f922873e000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007f9b3b83c000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007f9bb4377000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007fa0d8f23000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007fa16222f000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007fa9164f9000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007fbf571e7000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007fc53ae5a000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007fda01b86000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007fefe01a1000)
+	libc.so.6 => /lib64/libc.so.6 (0x00007ff11daf3000)
+	libcap-ng.so.0 => /lib64/libcap-ng.so.0 (0x00007fa1613a7000)
+	libcap.so.2 => /lib64/libcap.so.2 (0x00007f5559636000)
+	libcap.so.2 => /lib64/libcap.so.2 (0x00007f7856e0b000)
+	libcap.so.2 => /lib64/libcap.so.2 (0x00007f9b335cf000)
+	libcap.so.2 => /lib64/libcap.so.2 (0x00007fa160d0f000)
+	libcap.so.2 => /lib64/libcap.so.2 (0x00007fc53ac55000)
+	libcli-cldap-samba4.so => /usr/lib64/samba/libcli-cldap-samba4.so (0x00007f7859aff000)
+	libcli-ldap-common-samba4.so => /usr/lib64/samba/libcli-ldap-common-samba4.so (0x00007f7853d9f000)
+	libcli-nbt-samba4.so => /usr/lib64/samba/libcli-nbt-samba4.so (0x00007f7853989000)
+	libcli-smb-common-samba4.so => /usr/lib64/samba/libcli-smb-common-samba4.so (0x00007f785ca97000)
+	libcli-spoolss-samba4.so => /usr/lib64/samba/libcli-spoolss-samba4.so (0x00007f785d916000)
+	libcliauth-samba4.so => /usr/lib64/samba/libcliauth-samba4.so (0x00007f785ccc7000)
+	libcom_err.so.2 => /lib64/libcom_err.so.2 (0x00007f78590b4000)
+	libcom_err.so.2 => /lib64/libcom_err.so.2 (0x00007f9228005000)
+	libcom_err.so.2 => /lib64/libcom_err.so.2 (0x00007f9b342cc000)
+	libcom_err.so.2 => /lib64/libcom_err.so.2 (0x00007fa163ea7000)
+	libcommon-auth-samba4.so => /usr/lib64/samba/libcommon-auth-samba4.so (0x00007f7855b37000)
+	libcrypt.so.1 => /lib64/libcrypt.so.1 (0x00007f7854b34000)
+	libcrypt.so.1 => /lib64/libcrypt.so.1 (0x00007f9229763000)
+	libcrypt.so.1 => /lib64/libcrypt.so.1 (0x00007fa162a4c000)
+	libcrypto.so.10 => /lib64/libcrypto.so.10 (0x00007f7852a79000)
+	libcrypto.so.10 => /lib64/libcrypto.so.10 (0x00007f9229fc4000)
+	libcrypto.so.10 => /lib64/libcrypto.so.10 (0x00007f9b3879e000)
+	libcrypto.so.10 => /lib64/libcrypto.so.10 (0x00007f9bb3f16000)
+	libcrypto.so.10 => /lib64/libcrypto.so.10 (0x00007fa1637d5000)
+	libcups.so.2 => /lib64/libcups.so.2 (0x00007fa164813000)
+	libdb-5.3.so => /lib64/libdb-5.3.so (0x00007f92293a5000)
+	libdbus-1.so.3 => /lib64/libdbus-1.so.3 (0x00007f55586ef000)
+	libdbus-1.so.3 => /lib64/libdbus-1.so.3 (0x00007f9b355fe000)
+	libdbus-1.so.3 => /lib64/libdbus-1.so.3 (0x00007fa1617b0000)
+	libdbusmenu-qt.so.2 => /lib64/libdbusmenu-qt.so.2 (0x00007f9b37f5b000)
+	libdbwrap-samba4.so => /usr/lib64/samba/libdbwrap-samba4.so (0x00007f7858ea9000)
+	libdcerpc-binding.so.0 => /lib64/libdcerpc-binding.so.0 (0x00007f785fcb1000)
+	libdcerpc-samba-samba4.so => /usr/lib64/samba/libdcerpc-samba-samba4.so (0x00007f785e043000)
+	libdl.so.2 => /lib64/libdl.so.2 (0x00007f0d54ac3000)
+	libdl.so.2 => /lib64/libdl.so.2 (0x00007f3c27e96000)
+	libdl.so.2 => /lib64/libdl.so.2 (0x00007f555900e000)
+	libdl.so.2 => /lib64/libdl.so.2 (0x00007f7854930000)
+	libdl.so.2 => /lib64/libdl.so.2 (0x00007f9227bce000)
+	libdl.so.2 => /lib64/libdl.so.2 (0x00007f9b35a56000)
+	libdl.so.2 => /lib64/libdl.so.2 (0x00007f9bb3d12000)
+	libdl.so.2 => /lib64/libdl.so.2 (0x00007fa0d92f0000)
+	libdl.so.2 => /lib64/libdl.so.2 (0x00007fa161e1d000)
+	libdl.so.2 => /lib64/libdl.so.2 (0x00007fc53b227000)
+	libdw.so.1 => /lib64/libdw.so.1 (0x00007f55564d6000)
+	libdw.so.1 => /lib64/libdw.so.1 (0x00007f78541bd000)
+	libdw.so.1 => /lib64/libdw.so.1 (0x00007f9b33388000)
+	libdw.so.1 => /lib64/libdw.so.1 (0x00007fa15ffff000)
+	libdw.so.1 => /lib64/libdw.so.1 (0x00007fc539803000)
+	libelf.so.1 => /lib64/libelf.so.1 (0x00007f5554ed8000)
+	libelf.so.1 => /lib64/libelf.so.1 (0x00007f785010f000)
+	libelf.so.1 => /lib64/libelf.so.1 (0x00007f9b3249c000)
+	libelf.so.1 => /lib64/libelf.so.1 (0x00007fa15f9cc000)
+	libelf.so.1 => /lib64/libelf.so.1 (0x00007fc538d52000)
+	libexpat.so.1 => /lib64/libexpat.so.1 (0x00007f9b33a05000)
+	libfam.so.0 => /lib64/libfam.so.0 (0x00007f9b35c5a000)
+	libffi.so.6 => /lib64/libffi.so.6 (0x00007f9b33c2f000)
+	libflag-mapping-samba4.so => /usr/lib64/samba/libflag-mapping-samba4.so (0x00007f785052a000)
+	libfontconfig.so.1 => /lib64/libfontconfig.so.1 (0x00007f9b364b1000)
+	libfreebl3.so => /lib64/libfreebl3.so (0x00007f7850327000)
+	libfreebl3.so => /lib64/libfreebl3.so (0x00007f9227582000)
+	libfreebl3.so => /lib64/libfreebl3.so (0x00007fa1615ad000)
+	libfreetype.so.6 => /lib64/libfreetype.so.6 (0x00007f9b36f5d000)
+	libgcc_s.so.1 => /lib64/libgcc_s.so.1 (0x00007f0d54cc7000)
+	libgcc_s.so.1 => /lib64/libgcc_s.so.1 (0x00007f55562c0000)
+	libgcc_s.so.1 => /lib64/libgcc_s.so.1 (0x00007f7853fa7000)
+	libgcc_s.so.1 => /lib64/libgcc_s.so.1 (0x00007f9b3bc09000)
+	libgcc_s.so.1 => /lib64/libgcc_s.so.1 (0x00007fa15fde9000)
+	libgcc_s.so.1 => /lib64/libgcc_s.so.1 (0x00007fc5395ed000)
+	libgcrypt.so.11 => /lib64/libgcrypt.so.11 (0x00007f5556b3b000)
+	libgcrypt.so.11 => /lib64/libgcrypt.so.11 (0x00007f7850f76000)
+	libgcrypt.so.11 => /lib64/libgcrypt.so.11 (0x00007f9b328b9000)
+	libgcrypt.so.11 => /lib64/libgcrypt.so.11 (0x00007fa16044b000)
+	libgcrypt.so.11 => /lib64/libgcrypt.so.11 (0x00007fc539e68000)
+	libgenrand-samba4.so => /usr/lib64/samba/libgenrand-samba4.so (0x00007f785d309000)
+	libgensec-samba4.so => /usr/lib64/samba/libgensec-samba4.so (0x00007f785cedb000)
+	libglib-2.0.so.0 => /lib64/libglib-2.0.so.0 (0x00007f9b3742e000)
+	libgobject-2.0.so.0 => /lib64/libgobject-2.0.so.0 (0x00007f9b36d0c000)
+	libgpg-error.so.0 => /lib64/libgpg-error.so.0 (0x00007f5556936000)
+	libgpg-error.so.0 => /lib64/libgpg-error.so.0 (0x00007f7850d71000)
+	libgpg-error.so.0 => /lib64/libgpg-error.so.0 (0x00007f9b326b4000)
+	libgpg-error.so.0 => /lib64/libgpg-error.so.0 (0x00007fa160246000)
+	libgpg-error.so.0 => /lib64/libgpg-error.so.0 (0x00007fc539c63000)
+	libgse-samba4.so => /usr/lib64/samba/libgse-samba4.so (0x00007f78596d4000)
+	libgsm.so.1 => /lib64/libgsm.so.1 (0x00007f5555e9a000)
+	libgssapi_krb5.so.2 => /lib64/libgssapi_krb5.so.2 (0x00007f78558ea000)
+	libgssapi_krb5.so.2 => /lib64/libgssapi_krb5.so.2 (0x00007f92284f1000)
+	libgssapi_krb5.so.2 => /lib64/libgssapi_krb5.so.2 (0x00007f9b347b8000)
+	libgssapi_krb5.so.2 => /lib64/libgssapi_krb5.so.2 (0x00007fa1645c6000)
+	libgthread-2.0.so.0 => /lib64/libgthread-2.0.so.0 (0x00007f9b37742000)
+	libhesiod.so.0 => /lib64/libhesiod.so.0 (0x00007f922999a000)
+	libhwloc.so.5 => /lib64/libhwloc.so.5 (0x00007f0d559c2000)
+	libidn.so.11 => /lib64/libidn.so.11 (0x00007f9227785000)
+	libinterfaces-samba4.so => /usr/lib64/samba/libinterfaces-samba4.so (0x00007f7858673000)
+	libiov-buf-samba4.so => /usr/lib64/samba/libiov-buf-samba4.so (0x00007f7857c5d000)
+	libjli.so => not found
+	libk5crypto.so.3 => /lib64/libk5crypto.so.3 (0x00007f7850b3e000)
+	libk5crypto.so.3 => /lib64/libk5crypto.so.3 (0x00007f9227dd2000)
+	libk5crypto.so.3 => /lib64/libk5crypto.so.3 (0x00007f9b34099000)
+	libk5crypto.so.3 => /lib64/libk5crypto.so.3 (0x00007fa1640ab000)
+	libkdecore.so.5 => /lib64/libkdecore.so.5 (0x00007f9b3cff5000)
+	libkdeinit4_kmenuedit.so => /lib64/libkdeinit4_kmenuedit.so (0x00007f9b3f270000)
+	libkdeui.so.5 => /lib64/libkdeui.so.5 (0x00007f9b3e405000)
+	libkeyutils.so.1 => /lib64/libkeyutils.so.1 (0x00007f785072c000)
+	libkeyutils.so.1 => /lib64/libkeyutils.so.1 (0x00007f9225f38000)
+	libkeyutils.so.1 => /lib64/libkeyutils.so.1 (0x00007f9b32f76000)
+	libkeyutils.so.1 => /lib64/libkeyutils.so.1 (0x00007fa161c19000)
+	libkio.so.5 => /lib64/libkio.so.5 (0x00007f9b3edb7000)
+	libkrb5.so.3 => /lib64/libkrb5.so.3 (0x00007f78551a9000)
+	libkrb5.so.3 => /lib64/libkrb5.so.3 (0x00007f9228209000)
+	libkrb5.so.3 => /lib64/libkrb5.so.3 (0x00007f9b344d0000)
+	libkrb5.so.3 => /lib64/libkrb5.so.3 (0x00007fa1642de000)
+	libkrb5samba-samba4.so => /usr/lib64/samba/libkrb5samba-samba4.so (0x00007f7855d3e000)
+	libkrb5support.so.0 => /lib64/libkrb5support.so.0 (0x00007f7850930000)
+	libkrb5support.so.0 => /lib64/libkrb5support.so.0 (0x00007f9227158000)
+	libkrb5support.so.0 => /lib64/libkrb5support.so.0 (0x00007f9b3317a000)
+	libkrb5support.so.0 => /lib64/libkrb5support.so.0 (0x00007fa162021000)
+	liblber-2.4.so.2 => /lib64/liblber-2.4.so.2 (0x00007f7856bfc000)
+	liblber-2.4.so.2 => /lib64/liblber-2.4.so.2 (0x00007f9228b0b000)
+	libldap-2.4.so.2 => /lib64/libldap-2.4.so.2 (0x00007f78569a7000)
+	libldap-2.4.so.2 => /lib64/libldap-2.4.so.2 (0x00007f9228d1a000)
+	libldb.so.1 => /lib64/libldb.so.1 (0x00007f7854f79000)
+	libldbsamba-samba4.so => /usr/lib64/samba/libldbsamba-samba4.so (0x00007f7855491000)
+	libldns.so.1 => /lib64/libldns.so.1 (0x00007f9bb4744000)
+	liblibcli-lsa3-samba4.so => /usr/lib64/samba/liblibcli-lsa3-samba4.so (0x00007f785f2e8000)
+	liblibcli-netlogon3-samba4.so => /usr/lib64/samba/liblibcli-netlogon3-samba4.so (0x00007f785f0e3000)
+	liblibsmb-samba4.so => /usr/lib64/samba/liblibsmb-samba4.so (0x00007f785fa44000)
+	libltdl.so.7 => /lib64/libltdl.so.7 (0x00007f0d552aa000)
+	liblz4.so.1 => /lib64/liblz4.so.1 (0x00007f5556dbc000)
+	liblz4.so.1 => /lib64/liblz4.so.1 (0x00007f78511f7000)
+	liblz4.so.1 => /lib64/liblz4.so.1 (0x00007f9b32b3a000)
+	liblz4.so.1 => /lib64/liblz4.so.1 (0x00007fa1606cc000)
+	liblz4.so.1 => /lib64/liblz4.so.1 (0x00007fc53a0e9000)
+	liblzma.so.5 => /lib64/liblzma.so.5 (0x00007f5556fd1000)
+	liblzma.so.5 => /lib64/liblzma.so.5 (0x00007f785140c000)
+	liblzma.so.5 => /lib64/liblzma.so.5 (0x00007f9b3607b000)
+	liblzma.so.5 => /lib64/liblzma.so.5 (0x00007fa1608e1000)
+	liblzma.so.5 => /lib64/liblzma.so.5 (0x00007fc53a2fe000)
+	libm.so.6 => /lib64/libm.so.6 (0x00007f0d556c0000)
+	libm.so.6 => /lib64/libm.so.6 (0x00007f5558d0c000)
+	libm.so.6 => /lib64/libm.so.6 (0x00007f5f33eca000)
+	libm.so.6 => /lib64/libm.so.6 (0x00007f7854404000)
+	libm.so.6 => /lib64/libm.so.6 (0x00007f9b3be1f000)
+	libm.so.6 => /lib64/libm.so.6 (0x00007fa162c83000)
+	libm.so.6 => /lib64/libm.so.6 (0x00007fc53a953000)
+	libmessages-dgm-samba4.so => /usr/lib64/samba/libmessages-dgm-samba4.so (0x00007f7858265000)
+	libmessages-util-samba4.so => /usr/lib64/samba/libmessages-util-samba4.so (0x00007f7857846000)
+	libmsghdr-samba4.so => /usr/lib64/samba/libmsghdr-samba4.so (0x00007f7853786000)
+	libmsrpc3-samba4.so => /usr/lib64/samba/libmsrpc3-samba4.so (0x00007f785f823000)
+	libndr-krb5pac.so.0 => /lib64/libndr-krb5pac.so.0 (0x00007f7854d6b000)
+	libndr-nbt.so.0 => /lib64/libndr-nbt.so.0 (0x00007f78594be000)
+	libndr-samba-samba4.so => /usr/lib64/samba/libndr-samba-samba4.so (0x00007f785f4ec000)
+	libndr-samba4.so => /usr/lib64/samba/libndr-samba4.so (0x00007f785c506000)
+	libndr-standard.so.0 => /lib64/libndr-standard.so.0 (0x00007f785db1c000)
+	libndr.so.0 => /lib64/libndr.so.0 (0x00007f785e8a4000)
+	libnepomuk.so.4 => /lib64/libnepomuk.so.4 (0x00007f9b3b56d000)
+	libnepomukquery.so.4 => /lib64/libnepomukquery.so.4 (0x00007f9b3b324000)
+	libnepomukutils.so.4 => /lib64/libnepomukutils.so.4 (0x00007f9b3b0e8000)
+	libnsl.so.1 => /lib64/libnsl.so.1 (0x00007f55560a6000)
+	libnsl.so.1 => /lib64/libnsl.so.1 (0x00007f7857227000)
+	libnsl.so.1 => /lib64/libnsl.so.1 (0x00007f9229daa000)
+	libnspr4.so => /lib64/libnspr4.so (0x00007f7851a5d000)
+	libnspr4.so => /lib64/libnspr4.so (0x00007f922613c000)
+	libnss3.so => /lib64/libnss3.so (0x00007f78522d3000)
+	libnss3.so => /lib64/libnss3.so (0x00007f92269b2000)
+	libnssutil3.so => /lib64/libnssutil3.so (0x00007f78520a4000)
+	libnssutil3.so => /lib64/libnssutil3.so (0x00007f9226783000)
+	libnuma.so.1 => /lib64/libnuma.so.1 (0x00007f0d554b4000)
+	libogg.so.0 => /lib64/libogg.so.0 (0x00007f5555352000)
+	libpcap.so.1 => /lib64/libpcap.so.1 (0x00007f9bb499d000)
+	libpcre.so.1 => /lib64/libpcre.so.1 (0x00007f55550f0000)
+	libpcre.so.1 => /lib64/libpcre.so.1 (0x00007f784fc9d000)
+	libpcre.so.1 => /lib64/libpcre.so.1 (0x00007f92258a7000)
+	libpcre.so.1 => /lib64/libpcre.so.1 (0x00007f9b33e37000)
+	libpcre.so.1 => /lib64/libpcre.so.1 (0x00007fa161145000)
+	libpcre.so.1 => /lib64/libpcre.so.1 (0x00007fc538f6a000)
+	libplc4.so => /lib64/libplc4.so (0x00007f7851c9b000)
+	libplc4.so => /lib64/libplc4.so (0x00007f922637a000)
+	libplds4.so => /lib64/libplds4.so (0x00007f7851ea0000)
+	libplds4.so => /lib64/libplds4.so (0x00007f922657f000)
+	libpng15.so.15 => /lib64/libpng15.so.15 (0x00007f9b37203000)
+	libpopt-samba3-samba4.so => /usr/lib64/samba/libpopt-samba3-samba4.so (0x00007f786014a000)
+	libpopt.so.0 => /lib64/libpopt.so.0 (0x00007f785b792000)
+	libprocps.so.4 => /lib64/libprocps.so.4 (0x00007fc53b65c000)
+	libpthread.so.0 => /lib64/libpthread.so.0 (0x00007f555941a000)
+	libpthread.so.0 => /lib64/libpthread.so.0 (0x00007f786034f000)
+	libpthread.so.0 => /lib64/libpthread.so.0 (0x00007f9227366000)
+	libpthread.so.0 => /lib64/libpthread.so.0 (0x00007f9b3c8eb000)
+	libpthread.so.0 => /lib64/libpthread.so.0 (0x00007fa0d94f4000)
+	libpthread.so.0 => /lib64/libpthread.so.0 (0x00007fa162f85000)
+	libpthread.so.0 => /lib64/libpthread.so.0 (0x00007fc5393d1000)
+	libpulse.so.0 => /lib64/libpulse.so.0 (0x00007f555a84d000)
+	libpulsecommon-10.0.so => /usr/lib64/pulseaudio/libpulsecommon-10.0.so (0x00007f555a5cd000)
+	libqca.so.2 => /lib64/libqca.so.2 (0x00007f9b38486000)
+	libreadline.so.6 => /lib64/libreadline.so.6 (0x00007f785b33c000)
+	libreplace-samba4.so => /usr/lib64/samba/libreplace-samba4.so (0x00007f785eee0000)
+	libresolv.so.2 => /lib64/libresolv.so.2 (0x00007f555671d000)
+	libresolv.so.2 => /lib64/libresolv.so.2 (0x00007f7853368000)
+	libresolv.so.2 => /lib64/libresolv.so.2 (0x00007f922918c000)
+	libresolv.so.2 => /lib64/libresolv.so.2 (0x00007f9b35e62000)
+	libresolv.so.2 => /lib64/libresolv.so.2 (0x00007fa161a00000)
+	libresolv.so.2 => /lib64/libresolv.so.2 (0x00007fc539a4a000)
+	librt.so.1 => /lib64/librt.so.1 (0x00007f5559212000)
+	librt.so.1 => /lib64/librt.so.1 (0x00007f785a32d000)
+	librt.so.1 => /lib64/librt.so.1 (0x00007f9225b09000)
+	librt.so.1 => /lib64/librt.so.1 (0x00007f9b3584e000)
+	librt.so.1 => /lib64/librt.so.1 (0x00007fa160b07000)
+	librt.so.1 => /lib64/librt.so.1 (0x00007fc53a74b000)
+	libsamba-cluster-support-samba4.so => /usr/lib64/samba/libsamba-cluster-support-samba4.so (0x00007f7857a48000)
+	libsamba-credentials.so.0 => /lib64/libsamba-credentials.so.0 (0x00007f785c883000)
+	libsamba-debug-samba4.so => /usr/lib64/samba/libsamba-debug-samba4.so (0x00007f785d50b000)
+	libsamba-errors.so.1 => /lib64/libsamba-errors.so.1 (0x00007f785c1bc000)
+	libsamba-hostconfig.so.0 => /lib64/libsamba-hostconfig.so.0 (0x00007f785ad44000)
+	libsamba-modules-samba4.so => /usr/lib64/samba/libsamba-modules-samba4.so (0x00007f7856595000)
+	libsamba-passdb.so.0 => /lib64/libsamba-passdb.so.0 (0x00007f785e3e4000)
+	libsamba-security-samba4.so => /usr/lib64/samba/libsamba-security-samba4.so (0x00007f785ecc1000)
+	libsamba-sockets-samba4.so => /usr/lib64/samba/libsamba-sockets-samba4.so (0x00007f7859f0d000)
+	libsamba-util.so.0 => /lib64/libsamba-util.so.0 (0x00007f785fed2000)
+	libsamba3-util-samba4.so => /usr/lib64/samba/libsamba3-util-samba4.so (0x00007f785bdae000)
+	libsamdb-common-samba4.so => /usr/lib64/samba/libsamdb-common-samba4.so (0x00007f78556be000)
+	libsamdb.so.0 => /lib64/libsamdb.so.0 (0x00007f7856158000)
+	libsasl2.so.3 => /lib64/libsasl2.so.3 (0x00007f785314b000)
+	libsasl2.so.3 => /lib64/libsasl2.so.3 (0x00007f9228f6f000)
+	libsecrets3-samba4.so => /usr/lib64/samba/libsecrets3-samba4.so (0x00007f7858876000)
+	libselinux.so.1 => /lib64/libselinux.so.1 (0x00007f55571f7000)
+	libselinux.so.1 => /lib64/libselinux.so.1 (0x00007f7851632000)
+	libselinux.so.1 => /lib64/libselinux.so.1 (0x00007f9225d11000)
+	libselinux.so.1 => /lib64/libselinux.so.1 (0x00007f9b32d4f000)
+	libselinux.so.1 => /lib64/libselinux.so.1 (0x00007fa1625fc000)
+	libselinux.so.1 => /lib64/libselinux.so.1 (0x00007fc53a524000)
+	libserver-id-db-samba4.so => /usr/lib64/samba/libserver-id-db-samba4.so (0x00007f7857e5f000)
+	libserver-role-samba4.so => /usr/lib64/samba/libserver-role-samba4.so (0x00007f785bbac000)
+	libsmb-transport-samba4.so => /usr/lib64/samba/libsmb-transport-samba4.so (0x00007f78592b8000)
+	libsmbconf.so.0 => /lib64/libsmbconf.so.0 (0x00007f785e61a000)
+	libsmbd-shim-samba4.so => /usr/lib64/samba/libsmbd-shim-samba4.so (0x00007f7858063000)
+	libsmime3.so => /lib64/libsmime3.so (0x00007f7852600000)
+	libsmime3.so => /lib64/libsmime3.so (0x00007f9226cdf000)
+	libsndfile.so.1 => /lib64/libsndfile.so.1 (0x00007f5558054000)
+	libsocket-blocking-samba4.so => /usr/lib64/samba/libsocket-blocking-samba4.so (0x00007f785a738000)
+	libsolid.so.4 => /lib64/libsolid.so.4 (0x00007f9b39776000)
+	libsoprano.so.4 => /lib64/libsoprano.so.4 (0x00007f9b38e70000)
+	libsopranoclient.so.1 => /lib64/libsopranoclient.so.1 (0x00007f9b353b2000)
+	libssl.so.10 => /lib64/libssl.so.10 (0x00007f7852eda000)
+	libssl.so.10 => /lib64/libssl.so.10 (0x00007f922a425000)
+	libssl.so.10 => /lib64/libssl.so.10 (0x00007f9b38bff000)
+	libssl.so.10 => /lib64/libssl.so.10 (0x00007fa163c36000)
+	libssl3.so => /lib64/libssl3.so (0x00007f7852827000)
+	libssl3.so => /lib64/libssl3.so (0x00007f9226f06000)
+	libstdc++.so.6 => /lib64/libstdc++.so.6 (0x00007f9b3c121000)
+	libstreamanalyzer.so.0 => /lib64/libstreamanalyzer.so.0 (0x00007f9b39caf000)
+	libstreams.so.0 => /lib64/libstreams.so.0 (0x00007f9b39a76000)
+	libsys-rw-samba4.so => /usr/lib64/samba/libsys-rw-samba4.so (0x00007f785a535000)
+	libsystemd-daemon.so.0 => /lib64/libsystemd-daemon.so.0 (0x00007f785a126000)
+	libsystemd-journal.so.0 => /lib64/libsystemd-journal.so.0 (0x00007f7856370000)
+	libsystemd.so.0 => /lib64/libsystemd.so.0 (0x00007f55584be000)
+	libsystemd.so.0 => /lib64/libsystemd.so.0 (0x00007f9b337d4000)
+	libsystemd.so.0 => /lib64/libsystemd.so.0 (0x00007fa160f14000)
+	libsystemd.so.0 => /lib64/libsystemd.so.0 (0x00007fc53b42b000)
+	libtalloc-report-samba4.so => /usr/lib64/samba/libtalloc-report-samba4.so (0x00007f7858470000)
+	libtalloc.so.2 => /lib64/libtalloc.so.2 (0x00007f785b99c000)
+	libtdb-wrap-samba4.so => /usr/lib64/samba/libtdb-wrap-samba4.so (0x00007f7857441000)
+	libtdb.so.1 => /lib64/libtdb.so.1 (0x00007f7857010000)
+	libtevent-util.so.0 => /lib64/libtevent-util.so.0 (0x00007f785d106000)
+	libtevent.so.0 => /lib64/libtevent.so.0 (0x00007f785b582000)
+	libtime-basic-samba4.so => /usr/lib64/samba/libtime-basic-samba4.so (0x00007f785ab42000)
+	libtinfo.so.5 => /lib64/libtinfo.so.5 (0x00007f7854706000)
+	libtrusts-util-samba4.so => /usr/lib64/samba/libtrusts-util-samba4.so (0x00007f785eabb000)
+	libudev.so.1 => /lib64/libudev.so.1 (0x00007f9b34a05000)
+	libutil-cmdline-samba4.so => /usr/lib64/samba/libutil-cmdline-samba4.so (0x00007f785d711000)
+	libutil-reg-samba4.so => /usr/lib64/samba/libutil-reg-samba4.so (0x00007f785bfb9000)
+	libutil-setid-samba4.so => /usr/lib64/samba/libutil-setid-samba4.so (0x00007f7857644000)
+	libutil-tdb-samba4.so => /usr/lib64/samba/libutil-tdb-samba4.so (0x00007f7858ca5000)
+	libuuid.so.1 => /lib64/libuuid.so.1 (0x00007f5557a45000)
+	libuuid.so.1 => /lib64/libuuid.so.1 (0x00007f9b351ad000)
+	libvorbis.so.0 => /lib64/libvorbis.so.0 (0x00007f5555559000)
+	libvorbisenc.so.2 => /lib64/libvorbisenc.so.2 (0x00007f5555786000)
+	libwbclient.so.0 => /lib64/libwbclient.so.0 (0x00007f7856798000)
+	libwinbind-client-samba4.so => /usr/lib64/samba/libwinbind-client-samba4.so (0x00007f7851859000)
+	libwrap.so.0 => /lib64/libwrap.so.0 (0x00007f55582b3000)
+	libwrap.so.0 => /lib64/libwrap.so.0 (0x00007f9229b9f000)
+	libxcb.so.1 => /lib64/libxcb.so.1 (0x00007f3c2809a000)
+	libxcb.so.1 => /lib64/libxcb.so.1 (0x00007f5559e65000)
+	libxcb.so.1 => /lib64/libxcb.so.1 (0x00007f9b34f85000)
+	libxml2.so.2 => /lib64/libxml2.so.2 (0x00007f9b34c1b000)
+	libz.so.1 => /lib64/libz.so.1 (0x00007f5554cc2000)
+	libz.so.1 => /lib64/libz.so.1 (0x00007f7858a8f000)
+	libz.so.1 => /lib64/libz.so.1 (0x00007f92279b8000)
+	libz.so.1 => /lib64/libz.so.1 (0x00007f9b3aed2000)
+	libz.so.1 => /lib64/libz.so.1 (0x00007f9bb3afc000)
+	libz.so.1 => /lib64/libz.so.1 (0x00007fa0d9710000)
+	libz.so.1 => /lib64/libz.so.1 (0x00007fa1631a1000)
+	libz.so.1 => /lib64/libz.so.1 (0x00007fc538b3c000)
+	linux-vdso.so.1 =>  (0x00007ffc135d5000)
+	linux-vdso.so.1 =>  (0x00007ffc239ba000)
+	linux-vdso.so.1 =>  (0x00007ffc2b9e2000)
+	linux-vdso.so.1 =>  (0x00007ffc693b0000)
+	linux-vdso.so.1 =>  (0x00007ffc6cbe3000)
+	linux-vdso.so.1 =>  (0x00007ffd4fdd4000)
+	linux-vdso.so.1 =>  (0x00007ffd932fa000)
+	linux-vdso.so.1 =>  (0x00007ffdb2fd5000)
+	linux-vdso.so.1 =>  (0x00007ffe205ea000)
+	linux-vdso.so.1 =>  (0x00007ffe4a171000)
+	linux-vdso.so.1 =>  (0x00007ffe8a339000)
+	linux-vdso.so.1 =>  (0x00007ffecb7e5000)
+	linux-vdso.so.1 =>  (0x00007ffee3a54000)
+	linux-vdso.so.1 =>  (0x00007fff2ed7d000)
+	linux-vdso.so.1 =>  (0x00007fff78b3b000)
+	linux-vdso.so.1 =>  (0x00007fff93f65000)
+	linux-vdso.so.1 =>  (0x00007fffe65ef000)
+
+The preceding output is a sorted list of every dynamic library that is used 
+by any of the commands on our list (omitting duplicates).

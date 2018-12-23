@@ -1,0 +1,195 @@
+Bradley Mont
+CS 35L Lab 8, Rahul Dhavalikar
+Assignment 8. SSH setup and use in applications
+Laboratory
+
+First, I did all the initial setup of my BeagleBone.
+
+1. Plug BeagleBone into my computer.
+
+2. Open BEAGLEBONE under external storage devices.
+
+3. Open the START.htm file.
+We notice that the "Plug in BeagleBone via USB" step is already highlighted green,
+but the second step is not yet highlighted green. Therefore, we must install the
+necessary drivers. 
+
+4. Install the necessary drivers from the Piazza link, run [sudo rm -rf /System/Library/Extensions/HoRNDIS.kext],
+and then restart my computer. 
+This step is necessary because the installation links from START.htm do not work for my version of MAC OS X.
+Now we see that the second step in START.htm is highlighted green, so we have successfully installed the drivers
+necessary to interact with our BeagleBone.
+
+5. Command: [sudo ssh root@192.168.7.2]
+We run this command to SSH into our BeagleBone.
+
+6. Command: [sudo connmanctl]
+This command starts the connmanctl terminal. This is the tool that we will use for wifi connection management.
+
+For steps 7-12, you should see "connmanctl> [Command]"
+
+7. Command: [enable wifi]
+This command turns on wifi for our BeagleBone. 
+
+8. Command: [scan wifi]
+This command scans all available wifi access points.
+
+9. Command: [services]
+This command lists all the discovered access points.
+We get the following output:
+connmanctl> services
+    UCLA_WEB             wifi_2cf7f106786c_55434c415f574542_managed_none
+    BeagleBone031121     wifi_2cf7f106786c_426561676c65426f6e65303331313231_managed_none
+    UCLA_SECURE_RES      wifi_2cf7f106786c_55434c415f5345435552455f524553_managed_ieee8021x
+    UCLA_WIFI_RES        wifi_2cf7f106786c_55434c415f574946495f524553_managed_none
+We choose to connect to UCLA_WEB since it does not require any login.
+
+10. Command: [agent on]
+This command registers us as a prospective client.
+
+11. Command:[connect wifi_2cf7f106786c_55434c415f574542_managed_none]
+This command connects our BeagleBone to UCLA_WEB.
+
+12. Command: [quit]
+Now that we are connected to wifi, we close the application connmanctl.
+
+13. Command: [ifconfig]
+We run this command to get the IP address of our BeagleBone.
+We get the following output:
+root@beaglebone:~# ifconfig
+SoftAp0   Link encap:Ethernet  HWaddr f0:45:da:7d:b1:b3  
+          inet addr:192.168.8.1  Bcast:192.168.8.255  Mask:255.255.255.0
+          inet6 addr: fe80::f245:daff:fe7d:b1b3/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:30 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:0 (0.0 B)  TX bytes:7570 (7.3 KiB)
+
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:260 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:260 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1 
+          RX bytes:21292 (20.7 KiB)  TX bytes:21292 (20.7 KiB)
+
+usb0      Link encap:Ethernet  HWaddr f0:45:da:7d:b1:b5  
+          inet addr:192.168.7.2  Bcast:192.168.7.255  Mask:255.255.255.0
+          inet6 addr: fe80::f245:daff:fe7d:b1b5/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:441 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:273 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:57449 (56.1 KiB)  TX bytes:58835 (57.4 KiB)
+
+wlan0     Link encap:Ethernet  HWaddr 2c:f7:f1:06:78:6c  
+          inet addr:169.232.104.228  Bcast:169.232.104.255  Mask:255.255.255.0
+          inet6 addr: fe80::2ef7:f1ff:fe06:786c/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST DYNAMIC  MTU:1500  Metric:1
+          RX packets:65 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:164 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:12137 (11.8 KiB)  TX bytes:25590 (24.9 KiB)
+Our IP address is located under the network interface "wlan0" and labeled as "inet addr".
+IP address: 169.232.104.228
+
+14. Command: [sudo apt-get update]
+We run this command to update the database of apt-get.
+
+15. Command: [vim /etc/ssh/ssh_config]
+Since our BeagleBone comes with X11 disabled as a factory setting, we need to make sure that it is
+enabled before we attempt X11 forwarding. 
+We open the /etc/ssh/ssh_config file using vim, and we change
+ForwardX11 no
+to 
+ForwardX11 yes
+
+16. Command: [vim /etc/ssh/sshd_config]
+We must enable X11 forwarding in this file as well. We open the /etc/ssh/sshd_config file using vim, and we change
+X11Forwarding no
+to
+X11Forwarding yes
+
+Note: We also need an X11 client to see the X windows on our machine.
+We installed XQuartz.
+
+17. Command: [sudo apt-get install xauth]
+			       [sudo apt-get install xvfb]
+We run this command to install xauth and xvfb for X11 forwarding support for future SSH connections to our BeagleBone.
+
+18. Command: [sudo apt-get install firefox-esr-l10n-en-gb]
+We run this command to install Firefox on our BeagleBone. Firefox allows us to do X11 forwarding, and it allows us to
+connect to access points like UCLA_WIFI that require a sign-in for internet access.
+
+19. Command: [sudo apt-get install openssh-server]
+			       [sudo apt-get install openssh-client]
+We run these commands to install the necessary files to open OpenSSH to establish connections between my team's BeagleBones.
+
+Now, the setup of our BeagleBone is complete. 
+
+Now, I acted as the server, while my partner, Maggie Shi, acted as the client.
+
+1. Command: [ssh-keygen]
+This command generates public and private keys. The key is by default saved to ~/.ssh/is_rsa and id_rsa.pub.
+It prompted me for a passphrase, and I put "maggie".
+It also outputted:
+"Enter file in which to save the key (/root/.ssh/id_rsa): "
+I put: /root/.ssh/id_rsa
+
+2. Command: [sudo useradd -d /home/maggie -m maggie]
+We create an account for our client, maggie, on the server. 
+
+3. Command: [sudo passwd maggie]
+We set the password for our client to maggie.
+It then outputted: "Enter new UNIX password: ". I entered maggie as the password.
+
+4. Command: [cd /home/maggie/]
+			      [sudo mkdir .ssh]
+We change directories into the maggie directory, and then we create a .ssh directory. 
+
+5. Command: [sudo chown -R maggie .ssh]
+			      [sudo chmod 700 .ssh]
+Now, we change ownership and permission on the .ssh directory. Maggie is now an owner and can access the server.
+
+From here, I shared my BeagleBone IP address with Maggie, and she executed the client role.
+
+Then, we switched, and I executed the role of client, while Maggie executed the role of server.
+
+Note: I had already run the command [ssh-keygen] and generated public and private keys.
+
+1. Command: [ssh-copy-id -i client@169.232.107.205]
+First, I copy my public key to the server for key-based authentication. 
+Note: 169.232.107.205 is Maggie's server's IP address.
+It prompted me for a password, and I typed in her password: "camel".
+
+2. Command: [eval `ssh-agent -s`]
+			      [ssh-add]
+After inputting the necessary password, I add the private key to the authentication agent, ssh-agent. 
+The ssh-agent allows us to not input a password.
+
+3. Command: [ssh -X client@169.232.107.205]
+Now, we ssh into her server. We use it with the -X option to enable X11 session forwarding.
+
+Now, we want to run some commands on the remote host.
+
+4. Command: [xterm]
+We see the xterm terminal emulator window open up.
+
+5. Command: [gedit]
+We see the gedit text editor open up.
+
+6. Command: [firefox]
+We see a Firefox browser window open up.
+
+NOTE: In step 3, I compared [ssh -X client@169.232.107.205] to [ssh -Y client@169.232.107.205]
+I was able to ssh into her server using both commands.
+Using the man page for ssh, I obtained the following information:
+ssh -X enables X11 forwarding, which can also be specified on a per-host basis in a configuration file.
+It should be used with caution since this ability to bypass file permissions on the remote host could
+allow attacks to perform malicious actions. Therefore, X11 forwarding is subject to X11 SECURITY extension restrictions.
+ssh -Y enables trusted X11 forwarding. Trusted X11 forwardings are not subjected to the X11 SECURITY extension controls.
+
+Therefore, ssh -Y could be less secure because the X11 forwardings aren't subjected to the same security restrictions
+as the ones when using ssh -X.

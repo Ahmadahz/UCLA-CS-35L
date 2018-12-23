@@ -1,0 +1,147 @@
+Bradley Mont
+CS 35L Lab 8, Rahul Dhavalikar
+Assignment 5. System call programming and debugging
+Laboratory: Buffered versus unbuffered I/O
+
+1. Write the tr2b.c and tr2u.c programs and compile them using gcc.
+
+2. Command: [dd if=/dev/urandom of=bigfile.txt bs=1M count=5]
+First, we use the dd command and urandom to create a large file to use for testing. Specifically, this file contains 5,000,000 bytes.
+
+3. Command: [strace -cf ./tr2b 'a\n-' 'z@m+' < bigfile.txt > tr2boutputfile.txt]
+This command measures the system calls made by my tr2b program when (a) copying one file to another.
+We get the following output:
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+ 63.25    0.000222           0       640           write
+ 36.75    0.000129           0       642           read
+  0.00    0.000000           0         2           open
+  0.00    0.000000           0         2           close
+  0.00    0.000000           0         4           fstat
+  0.00    0.000000           0         9           mmap
+  0.00    0.000000           0         4           mprotect
+  0.00    0.000000           0         1           munmap
+  0.00    0.000000           0         1           brk
+  0.00    0.000000           0         1         1 access
+  0.00    0.000000           0         1           execve
+  0.00    0.000000           0         1           arch_prctl
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.000351                  1308         1 total
+We see that there is a total of 1308 system calls.
+
+4. Command: [strace -cf ./tr2u 'a\n-' 'z@m+' < bigfile.txt > tr2uoutputfile.txt]
+This command measures the system calls made by my tr2u program when (a) copying one file to another.
+We get the following output:
+% time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+ 55.07   24.175334           5   5242880           write
+ 44.91   19.716549           4   5242882           read
+  0.02    0.010521           4      2486           brk
+  0.00    0.000000           0         2           open
+  0.00    0.000000           0         2           close
+  0.00    0.000000           0         2           fstat
+  0.00    0.000000           0         7           mmap
+  0.00    0.000000           0         4           mprotect
+  0.00    0.000000           0         1           munmap
+  0.00    0.000000           0         1         1 access
+  0.00    0.000000           0         1           execve
+  0.00    0.000000           0         1           arch_prctl
+------ ----------- ----------- --------- --------- ----------------
+100.00   43.902404              10488269         1 total
+We see that there is a total of 10488269 system calls.
+
+
+5. Command: [strace -cf ./tr2b 'a\n-' 'z@m+' < bigfile.txt]
+This command measures the system calls made by my tr2b program when (b) when copying a file to my terminal.
+We get the following output:
+time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+ 97.31    0.068981           3     20800           write
+  2.46    0.001745           3       642           read
+  0.08    0.000056           6         9           mmap
+  0.05    0.000033           8         4           mprotect
+  0.03    0.000018           5         4           fstat
+  0.02    0.000015           8         2           open
+  0.02    0.000011          11         1           munmap
+  0.01    0.000008           8         1           execve
+  0.01    0.000007           4         2           close
+  0.01    0.000007           7         1         1 access
+  0.01    0.000004           4         1           brk
+  0.00    0.000003           3         1           arch_prctl
+------ ----------- ----------- --------- --------- ----------------
+100.00    0.070888                 21468         1 total
+We see that there is a total of 21468 system calls.
+
+
+6. Command: [strace -cf ./tr2u 'a\n-' 'z@m+' < bigfile.txt]
+This command measures the system calls made by my tr2u program when (b) when copying a file to my terminal.
+We get the following output:
+time     seconds  usecs/call     calls    errors syscall
+------ ----------- ----------- --------- --------- ----------------
+ 55.57   25.749880           5   5242880           write
+ 44.41   20.576756           4   5242882           read
+  0.02    0.010908           4      2486           brk
+  0.00    0.000000           0         2           open
+  0.00    0.000000           0         2           close
+  0.00    0.000000           0         2           fstat
+  0.00    0.000000           0         7           mmap
+  0.00    0.000000           0         4           mprotect
+  0.00    0.000000           0         1           munmap
+  0.00    0.000000           0         1         1 access
+  0.00    0.000000           0         1           execve
+  0.00    0.000000           0         1           arch_prctl
+------ ----------- ----------- --------- --------- ----------------
+100.00   46.337544              10488269         1 total
+We see that there is a total of 10488269 system calls.
+
+Overall, we see that tr2u has many more system calls than tr2b.
+
+7. Command: [time ./tr2b 'a\n-' 'z@m+' < bigfile.txt > tr2boutputfile2.txt]
+This command measures the speed of my tr2b program when (a) copying one file to another.
+We get the following output:
+real	0m0.328s
+user	0m0.273s
+sys	0m0.008s
+
+
+8. Command: [time ./tr2u 'a\n-' 'z@m+' < bigfile.txt > tr2uoutputfile2.txt]
+This command measures the speed of my tr2u program when (a) copying one file to another.
+We get the following output:
+real	0m10.303s
+user	0m1.529s
+sys	0m8.728s
+
+
+9. Command: [time ./tr2b 'a\n-' 'z@m+' < bigfile.txt]
+This command measures the speed of my tr2b program when (b) when copying a file to my terminal.
+We get the following output: 
+real	0m1.204s
+user	0m0.341s
+sys	0m0.094s
+
+
+10. Command: [time ./tr2u 'a\n-' 'z@m+' < bigfile.txt]
+This command measures the speed of my tr2u program when (b) when copying a file to my terminal.
+We get the following output:
+real	0m9.629s
+user	0m1.613s
+sys	0m8.002s
+
+
+Overall, we see that tr2u is much slower because it has so many more system calls. Therefore,
+unbuffered I/O is much slower than buffered I/O. The many more system calls slow it down.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
