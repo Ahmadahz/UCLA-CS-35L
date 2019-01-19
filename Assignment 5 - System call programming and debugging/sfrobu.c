@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
             //end with a space
             if (i == fileSize - 1 && fileInput[i] != ' ')
             {
-                char* temp = realloc(fileInput, (fileSize + 1) * sizeof(char));
+                char* temp = realloc(fileInput, (fileSize + 2) * sizeof(char));
                 if (temp == NULL)
                 {
                     char* errorMsg = "Error allocating memory.";
